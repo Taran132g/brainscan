@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Brain, Upload, FileArchive, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/api";
 
 type Stage = "idle" | "uploading" | "processing" | "done" | "error";
 
@@ -79,7 +80,7 @@ export default function UploadPage() {
       };
 
       const [response] = await Promise.all([
-        fetch(`http://localhost:5000/api/upload/${userId}`, {
+        fetch(`${API_BASE_URL}/api/upload/${userId}`, {
           method: "POST",
           body: formData,
         }),
@@ -88,16 +89,28 @@ export default function UploadPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.detail || "Upload failed");
+        // FastAPI structured errors come back as data.detail (object or string)
+        const detail = data.detail;
+        if (typeof detail === "object" && detail?.message) {
+          const stats = detail.stats;
+          const statsLine = stats
+            ? ` (${stats.note_count} notes, ${stats.total_words.toLocaleString()} words, avg ${stats.avg_words_per_note} words/note)`
+            : "";
+          throw new Error(`${detail.message}${statsLine}`);
+        }
+        throw new Error(typeof detail === "string" ? detail : "Upload failed");
       }
 
       const result = await response.json();
       setCompletedSteps(["parsing", "chunking", "embedding", "storing", "brain_card"]);
       setStage("done");
 
-      // Store brain card in sessionStorage to pass to profile page
+      // Store brain card + quality in sessionStorage to pass to profile page
       sessionStorage.setItem(`braincard_${userId}`, JSON.stringify(result.brain_card));
       sessionStorage.setItem(`user_name_${userId}`, name);
+      if (result.vault_quality) {
+        sessionStorage.setItem(`vault_quality_${userId}`, JSON.stringify(result.vault_quality));
+      }
 
       setTimeout(() => router.push(`/profile/${userId}`), 800);
     } catch (err) {

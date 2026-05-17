@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import JSONResponse
 from services.vault_parser import parse_vault_zip
+from services.vault_quality import assess_vault_quality
 from services.chunker import chunk_document
 from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
@@ -23,6 +24,21 @@ async def upload_vault(user_id: str, file: UploadFile = File(...)):
     if not documents:
         raise HTTPException(status_code=400, detail="No readable markdown files found in vault")
 
+    # Quality gate — reject sparse vaults before doing expensive embedding work
+    quality = assess_vault_quality([
+        {"title": d["title"], "text": d["content"], "file_path": d["path"]}
+        for d in documents
+    ])
+    if not quality["passes"]:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "message": quality["reason"],
+                "stats": quality["stats"],
+                "code": "vault_too_sparse",
+            },
+        )
+
     # Chunk all documents
     all_chunks = []
     for doc in documents:
@@ -43,5 +59,9 @@ async def upload_vault(user_id: str, file: UploadFile = File(...)):
         "user_id": user_id,
         "documents_parsed": len(documents),
         "chunks_indexed": count,
+        "vault_quality": {
+            "score": quality["quality_score"],
+            "stats": quality["stats"],
+        },
         "brain_card": brain_card,
     })

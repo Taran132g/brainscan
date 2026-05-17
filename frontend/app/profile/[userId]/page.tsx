@@ -4,10 +4,28 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Brain, User, Lightbulb, Heart, Users, ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { API_BASE_URL } from "@/lib/api";
+
+type FounderSignal = {
+  domain_obsession?: "low" | "medium" | "high";
+  shipped_before?: boolean;
+  emotional_stability_signal?: "low" | "medium" | "high";
+  market_orientation?: "b2b" | "consumer" | "infrastructure" | "mixed" | "unclear";
+};
 
 type BrainCard = {
-  raw: string;
   sections: Record<string, string>;
+  founder_signal?: FounderSignal;
+  raw?: unknown;
+};
+
+type VaultQuality = {
+  score: number;
+  stats: {
+    note_count: number;
+    total_words: number;
+    avg_words_per_note: number;
+  };
 };
 
 const SECTION_CONFIG = [
@@ -18,9 +36,30 @@ const SECTION_CONFIG = [
   { key: "What They Likely Need in a Co-Founder", icon: <Users size={16} />, color: "#10b981" },
 ];
 
+function SignalPill({ label, value }: { label: string; value: string }) {
+  const intensityColor =
+    value === "high" || value === "yes"
+      ? "#10b981"
+      : value === "medium"
+      ? "#f59e0b"
+      : value === "low" || value === "no"
+      ? "#f87171"
+      : "var(--accent)";
+  return (
+    <div
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border"
+      style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+    >
+      <span style={{ color: "var(--text-secondary)" }}>{label}:</span>
+      <span style={{ color: intensityColor, fontWeight: 600 }}>{value}</span>
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const [brainCard, setBrainCard] = useState<BrainCard | null>(null);
+  const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
   const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,15 +68,17 @@ export default function ProfilePage() {
     // Try sessionStorage first (just came from upload)
     const cached = sessionStorage.getItem(`braincard_${userId}`);
     const name = sessionStorage.getItem(`user_name_${userId}`);
+    const quality = sessionStorage.getItem(`vault_quality_${userId}`);
     if (cached) {
       setBrainCard(JSON.parse(cached));
       setUserName(name || userId);
+      if (quality) setVaultQuality(JSON.parse(quality));
       setLoading(false);
       return;
     }
 
     // Otherwise fetch from API
-    fetch(`http://localhost:5000/api/profile/${userId}/brain-card`)
+    fetch(`${API_BASE_URL}/api/profile/${userId}/brain-card`)
       .then((r) => r.json())
       .then((data) => {
         setBrainCard(data.brain_card);
@@ -89,20 +130,68 @@ export default function ProfilePage() {
         ) : (
           <>
             {/* Header */}
-            <div className="flex items-center gap-4 mb-10">
+            <div className="flex items-center gap-4 mb-6">
               <div
                 className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold"
                 style={{ backgroundColor: "var(--accent)", color: "white" }}
               >
                 {initials || "?"}
               </div>
-              <div>
+              <div className="flex-1">
                 <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
                   {userName || userId}
                 </h1>
                 <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Brain Card · Co-founder profile</p>
               </div>
+              {vaultQuality && (
+                <div
+                  className="text-right px-3 py-2 rounded-lg border"
+                  style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
+                >
+                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>Brain confidence</div>
+                  <div className="text-lg font-bold" style={{ color: "var(--accent)" }}>
+                    {vaultQuality.score}%
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Vault stats line */}
+            {vaultQuality && (
+              <p className="text-xs mb-8" style={{ color: "var(--text-secondary)" }}>
+                Built from {vaultQuality.stats.note_count.toLocaleString()} notes · {vaultQuality.stats.total_words.toLocaleString()} words · {vaultQuality.stats.avg_words_per_note} avg words/note
+              </p>
+            )}
+
+            {/* Founder signal pills */}
+            {brainCard?.founder_signal && (
+              <div className="flex flex-wrap gap-2 mb-8">
+                {brainCard.founder_signal.domain_obsession && (
+                  <SignalPill
+                    label="Domain obsession"
+                    value={brainCard.founder_signal.domain_obsession}
+                  />
+                )}
+                {brainCard.founder_signal.emotional_stability_signal && (
+                  <SignalPill
+                    label="Emotional stability"
+                    value={brainCard.founder_signal.emotional_stability_signal}
+                  />
+                )}
+                {brainCard.founder_signal.shipped_before !== undefined && (
+                  <SignalPill
+                    label="Shipped before"
+                    value={brainCard.founder_signal.shipped_before ? "yes" : "no"}
+                  />
+                )}
+                {brainCard.founder_signal.market_orientation && (
+                  <SignalPill
+                    label="Market orientation"
+                    value={brainCard.founder_signal.market_orientation}
+                  />
+                )}
+              </div>
+            )}
 
             {/* Sections */}
             <div className="flex flex-col gap-5">
