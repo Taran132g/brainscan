@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { Brain, Zap, Shield, ArrowRight, Upload, Users } from "lucide-react";
+import { SmartCta } from "@/components/SmartCta";
 
 export default function Home() {
   return (
@@ -10,13 +10,12 @@ export default function Home() {
           <Brain size={22} style={{ color: "var(--accent)" }} />
           <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
         </div>
-        <Link
-          href="/upload"
+        <SmartCta
           className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
           style={{ backgroundColor: "var(--accent)", color: "white" }}
         >
           Get Started
-        </Link>
+        </SmartCta>
       </nav>
 
       {/* Hero */}
@@ -42,14 +41,13 @@ export default function Home() {
         </p>
 
         <div className="flex items-center gap-4">
-          <Link
-            href="/upload"
+          <SmartCta
             className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
             Upload Your Vault
             <ArrowRight size={16} />
-          </Link>
+          </SmartCta>
           <a
             href="#how-it-works"
             className="px-6 py-3 rounded-lg font-medium transition-colors"
@@ -124,16 +122,24 @@ export default function Home() {
           Ready to find your co-founder?
         </h2>
         <p className="mb-8 text-sm" style={{ color: "var(--text-secondary)" }}>
-          Don't have an Obsidian vault? We'll give you a template to get started.
+          Don&apos;t have an Obsidian vault?{" "}
+          <a
+            href="https://learn.nextwork.org/projects/ai-second-brain-claude-code"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: "var(--accent)" }}
+            className="hover:underline"
+          >
+            Build your digital brain →
+          </a>
         </p>
-        <Link
-          href="/upload"
+        <SmartCta
           className="inline-flex items-center gap-2 px-8 py-4 rounded-lg font-medium transition-opacity hover:opacity-90"
           style={{ backgroundColor: "var(--accent)", color: "white" }}
         >
-          Get Started — It's Free
+          Get Started
           <ArrowRight size={16} />
-        </Link>
+        </SmartCta>
       </section>
 
       <footer className="px-8 py-6 border-t text-center text-xs" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>

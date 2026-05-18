@@ -1,23 +1,42 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Brain, Upload, FileArchive, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
+import {
+  Brain,
+  Upload,
+  FileArchive,
+  CheckCircle,
+  Loader2,
+  ArrowLeft,
+  ExternalLink,
+  Apple,
+  Monitor,
+  LogOut,
+} from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
-type Stage = "idle" | "uploading" | "processing" | "done" | "error";
+type Stage = "idle" | "processing" | "done" | "error";
 
 export default function UploadPage() {
   const router = useRouter();
+  const { user, loading: authLoading, signOut } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [stage, setStage] = useState<Stage>("idle");
   const [dragOver, setDragOver] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [progress, setProgress] = useState("");
+  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+
+  // Auth guard
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace("/auth");
+    }
+  }, [authLoading, user, router]);
 
   const steps = [
     { label: "Parsing vault", key: "parsing" },
@@ -27,11 +46,9 @@ export default function UploadPage() {
     { label: "Building brain card", key: "brain_card" },
   ];
 
-  const [completedSteps, setCompletedSteps] = useState<string[]>([]);
-
   const handleFile = (file: File) => {
     if (!file.name.endsWith(".zip")) {
-      setError("Please upload a .zip file (Obsidian vault export).");
+      setError("Please upload a .zip file (your Obsidian vault folder, compressed).");
       return;
     }
     setError("");
@@ -46,23 +63,20 @@ export default function UploadPage() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedFile || !name || !email) {
-      setError("Please fill in your name, email, and upload your vault.");
+    if (!selectedFile || !user) {
+      setError("Please select your vault zip first.");
       return;
     }
 
-    const userId = email.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-    setStage("uploading");
+    const userId = user.id;
+    setStage("processing");
     setError("");
+    setProgress("Uploading vault...");
 
     const formData = new FormData();
     formData.append("file", selectedFile);
 
     try {
-      setStage("processing");
-      setProgress("Uploading vault...");
-
-      // Simulate step progress while the real request runs
       const stepDelay = (ms: number) => new Promise((r) => setTimeout(r, ms));
       const progressSteps = async () => {
         await stepDelay(1000);
@@ -89,7 +103,6 @@ export default function UploadPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        // FastAPI structured errors come back as data.detail (object or string)
         const detail = data.detail;
         if (typeof detail === "object" && detail?.message) {
           const stats = detail.stats;
@@ -105,9 +118,12 @@ export default function UploadPage() {
       setCompletedSteps(["parsing", "chunking", "embedding", "storing", "brain_card"]);
       setStage("done");
 
-      // Store brain card + quality in sessionStorage to pass to profile page
+      const displayName =
+        (user.user_metadata?.full_name as string | undefined) ??
+        user.email ??
+        userId;
       sessionStorage.setItem(`braincard_${userId}`, JSON.stringify(result.brain_card));
-      sessionStorage.setItem(`user_name_${userId}`, name);
+      sessionStorage.setItem(`user_name_${userId}`, displayName);
       if (result.vault_quality) {
         sessionStorage.setItem(`vault_quality_${userId}`, JSON.stringify(result.vault_quality));
       }
@@ -119,65 +135,84 @@ export default function UploadPage() {
     }
   };
 
+  // While we figure out auth, show a quick loading state
+  if (authLoading || !user) {
+    return (
+      <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen flex flex-col items-center justify-center gap-3">
+        <Brain size={30} className="animate-pulse" style={{ color: "var(--accent)" }} />
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>Checking your session...</span>
+      </div>
+    );
+  }
+
+  const displayName =
+    (user.user_metadata?.full_name as string | undefined) ?? user.email ?? "";
+
   return (
     <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen">
-      {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center gap-2">
           <Brain size={22} style={{ color: "var(--accent)" }} />
           <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
         </div>
-        <Link href="/" className="flex items-center gap-1 text-sm transition-colors" style={{ color: "var(--text-secondary)" }}>
-          <ArrowLeft size={14} /> Back
-        </Link>
+        <div className="flex items-center gap-4">
+          <span className="text-xs hidden sm:block" style={{ color: "var(--text-secondary)" }}>
+            {displayName}
+          </span>
+          <button
+            onClick={async () => {
+              await signOut();
+              router.push("/");
+            }}
+            className="flex items-center gap-1 text-xs"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            <LogOut size={12} /> Sign out
+          </button>
+          <Link href="/" className="flex items-center gap-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            <ArrowLeft size={14} /> Home
+          </Link>
+        </div>
       </nav>
 
-      <div className="max-w-xl mx-auto px-6 py-16">
+      <div className="max-w-2xl mx-auto px-6 py-12">
         {stage === "idle" || stage === "error" ? (
           <>
             <h1 className="text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
               Upload your vault
             </h1>
-            <p className="text-sm mb-8" style={{ color: "var(--text-secondary)" }}>
-              Export your Obsidian vault via <strong>File → Export as zip</strong>, then upload it below.
+            <p className="text-sm mb-10" style={{ color: "var(--text-secondary)" }}>
+              We&apos;ll process your Obsidian vault into a brain card so you can find co-founders who think like you.
             </p>
 
-            {/* Name + Email */}
-            <div className="flex flex-col gap-4 mb-6">
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-                  Your name
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Taranveer Singh"
-                  className="w-full px-4 py-2.5 rounded-lg text-sm outline-none border transition-colors"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    borderColor: "var(--border)",
-                    color: "var(--text-primary)",
-                  }}
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: "var(--text-secondary)" }}>
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full px-4 py-2.5 rounded-lg text-sm outline-none border transition-colors"
-                  style={{
-                    backgroundColor: "var(--surface)",
-                    borderColor: "var(--border)",
-                    color: "var(--text-primary)",
-                  }}
-                />
-              </div>
+            {/* Vault export instructions */}
+            <div
+              className="p-6 rounded-xl border mb-8"
+              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+            >
+              <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+                How to export your Obsidian vault as a zip
+              </h2>
+              <ol className="flex flex-col gap-3">
+                <Step n={1}>
+                  Find your Obsidian vault folder. By default it&apos;s in your{" "}
+                  <code style={{ color: "var(--accent)" }}>Documents</code> or iCloud Obsidian folder.
+                </Step>
+                <Step n={2}>
+                  <span className="flex items-center gap-2">
+                    <Apple size={13} style={{ color: "var(--text-secondary)" }} />
+                    <span><strong>macOS:</strong> right-click the vault folder → <strong>Compress</strong>.</span>
+                  </span>
+                  <span className="flex items-center gap-2 mt-1">
+                    <Monitor size={13} style={{ color: "var(--text-secondary)" }} />
+                    <span><strong>Windows:</strong> right-click → <strong>Send to → Compressed (zipped) folder</strong>.</span>
+                  </span>
+                </Step>
+                <Step n={3}>Drop the resulting <code style={{ color: "var(--accent)" }}>.zip</code> file below.</Step>
+              </ol>
+              <p className="text-xs mt-4 pt-4 border-t" style={{ color: "var(--text-secondary)", borderColor: "var(--border)" }}>
+                Vault size limit: 100MB. Minimum: 200 notes (with avg 300+ words) or 1,000 notes total.
+              </p>
             </div>
 
             {/* Drop zone */}
@@ -219,27 +254,53 @@ export default function UploadPage() {
             </div>
 
             {error && (
-              <p className="text-sm mb-4 px-4 py-3 rounded-lg" style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.1)" }}>
+              <p className="text-sm mb-4 px-4 py-3 rounded-lg"
+                style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.1)" }}>
                 {error}
               </p>
             )}
 
             <button
               onClick={handleSubmit}
-              disabled={!selectedFile || !name || !email}
+              disabled={!selectedFile}
               className="w-full py-3 rounded-lg font-medium text-sm transition-opacity disabled:opacity-40"
               style={{ backgroundColor: "var(--accent)", color: "white" }}
             >
               Analyze My Brain
             </button>
 
-            <p className="text-xs text-center mt-4" style={{ color: "var(--text-secondary)" }}>
-              Don't have a vault?{" "}
-              <a href="#" style={{ color: "var(--accent)" }}>Download our starter template</a>
+            {/* No vault? NextWork CTA */}
+            <div
+              className="mt-10 p-6 rounded-xl border flex items-start gap-4"
+              style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)" }}
+            >
+              <Brain size={22} style={{ color: "var(--accent)", flexShrink: 0, marginTop: 2 }} />
+              <div className="flex-1">
+                <h3 className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                  Don&apos;t have an Obsidian vault yet?
+                </h3>
+                <p className="text-xs mb-3" style={{ color: "var(--text-secondary)" }}>
+                  Build your digital brain in a weekend with this free guide from NextWork — it walks you through setting up
+                  a personal knowledge base with Claude Code.
+                </p>
+                <a
+                  href="https://learn.nextwork.org/projects/ai-second-brain-claude-code"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 text-xs font-medium hover:underline"
+                  style={{ color: "var(--accent)" }}
+                >
+                  Open the guide
+                  <ExternalLink size={11} />
+                </a>
+              </div>
+            </div>
+
+            <p className="text-xs text-center mt-8" style={{ color: "var(--text-secondary)" }}>
+              These fees cover Claude API + Pinecone + hosting costs. Everything beyond the upload is free.
             </p>
           </>
         ) : (
-          /* Processing / done state */
           <div className="flex flex-col items-center text-center gap-8 pt-8">
             {stage === "done" ? (
               <CheckCircle size={52} style={{ color: "#34d399" }} />
@@ -289,5 +350,19 @@ export default function UploadPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function Step({ n, children }: { n: number; children: React.ReactNode }) {
+  return (
+    <li className="flex items-start gap-3 text-sm" style={{ color: "var(--text-primary)" }}>
+      <span
+        className="flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold flex-shrink-0"
+        style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)", border: "1px solid var(--accent)" }}
+      >
+        {n}
+      </span>
+      <div className="flex flex-col" style={{ color: "var(--text-secondary)" }}>{children}</div>
+    </li>
   );
 }
