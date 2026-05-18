@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Brain, User, Lightbulb, Heart, Users, ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, authedFetch } from "@/lib/api";
 
 type FounderSignal = {
   domain_obsession?: "low" | "medium" | "high";
@@ -79,7 +79,7 @@ export default function ProfilePage() {
     }
 
     // Otherwise fetch from API
-    fetch(`${API_BASE_URL}/api/profile/${userId}/brain-card`)
+    authedFetch(`${API_BASE_URL}/api/profile/${userId}/brain-card`)
       .then((r) => r.json())
       .then((data) => {
         setBrainCard(data.brain_card);

@@ -17,10 +17,16 @@ cp .env.example .env
 Fill in `backend/.env`:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...      # from console.anthropic.com
-PINECONE_API_KEY=pcsk-...         # from app.pinecone.io
+ANTHROPIC_API_KEY=sk-ant-...           # from console.anthropic.com
+PINECONE_API_KEY=pcsk-...              # from app.pinecone.io
 PINECONE_INDEX_NAME=finding-founders
+SUPABASE_JWT_SECRET=your-jwt-secret    # set after Supabase setup below
 ```
+
+> **Note on `SUPABASE_JWT_SECRET`:** the backend uses this to verify auth
+> tokens on every protected request. You'll fill it in after creating your
+> Supabase project (next section). Without it, all uploads and profile reads
+> return 500.
 
 Start the backend:
 ```bash
@@ -44,9 +50,14 @@ uvicorn main:app --reload --port 8000
 
 In the Supabase dashboard:
 1. Go to **Settings** → **API**
-2. Copy these two values:
-   - **Project URL** — e.g. `https://abcdefgh.supabase.co`
-   - **anon public key** — long JWT starting with `eyJ...`
+2. Copy these three values:
+   - **Project URL** — e.g. `https://abcdefgh.supabase.co` → frontend
+   - **anon public key** — long JWT starting with `eyJ...` → frontend
+   - **JWT Secret** (further down on the same page, under "JWT Settings") → backend `SUPABASE_JWT_SECRET`
+
+> The JWT secret is what your FastAPI backend uses to verify that incoming
+> requests have a real Supabase session. Treat it like a server secret —
+> never expose it to the browser.
 
 ### Enable Google OAuth
 

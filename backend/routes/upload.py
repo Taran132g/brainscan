@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from services.vault_parser import parse_vault_zip
 from services.vault_quality import assess_vault_quality
@@ -6,12 +6,16 @@ from services.chunker import chunk_document
 from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
+from services.auth import verify_user_owns_path
 
 router = APIRouter()
 
 
 @router.post("/upload/{user_id}")
-async def upload_vault(user_id: str, file: UploadFile = File(...)):
+async def upload_vault(
+    file: UploadFile = File(...),
+    user_id: str = Depends(verify_user_owns_path),
+):
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Upload must be a .zip file")
 

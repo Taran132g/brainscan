@@ -1,13 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from services.embedder import embed_chunks
 from services.vector_store import query_namespace
 from services.brain_card import generate_brain_card
+from services.auth import verify_user_owns_path
 
 router = APIRouter()
 
 
 @router.get("/profile/{user_id}/brain-card")
-async def get_brain_card(user_id: str):
+async def get_brain_card(user_id: str = Depends(verify_user_owns_path)):
     """
     Regenerate a brain card for a user from their stored vectors.
     Useful if the user updates their vault or wants a fresh card.

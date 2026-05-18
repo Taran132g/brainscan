@@ -15,7 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import Link from "next/link";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 type Stage = "idle" | "processing" | "done" | "error";
@@ -94,7 +94,7 @@ export default function UploadPage() {
       };
 
       const [response] = await Promise.all([
-        fetch(`${API_BASE_URL}/api/upload/${userId}`, {
+        authedFetch(`${API_BASE_URL}/api/upload/${userId}`, {
           method: "POST",
           body: formData,
         }),
