@@ -1,94 +1,134 @@
 from typing import Optional
 
-# Founder scoring rubric based on empirical research:
+# Founder scoring rubric — revised for FindingFounders context.
+#
+# Key context: every user on this platform is BY DEFINITION solo and looking for
+# a co-founder. So traditional "2+ founders" and "solo penalty" signals are
+# useless here — they apply to either 0% or 100% of users. We replaced them
+# with verifiable platform signals (GitHub, LinkedIn) and an LLM-derived
+# implied intelligence signal from the vault.
+#
 # Sources: PNAS (2023, n=10,541), First Round Capital 10-Year Study,
-#          Kauffman Foundation, YC/Paul Graham, HBS, Carta 2025, NFX
+# Kauffman Foundation, YC/Paul Graham, HBS, NFX
 
-# Signal weights (all deltas from baseline, normalized to 0-100 score)
 SIGNAL_WEIGHTS = {
-    "has_co_founder": 20,          # 163% outperformance (First Round)
-    "technical_background": 12,    # 230% for B2B, -31% for consumer — context-dependent
+    # Strong verifiable signals (high cap)
+    "github_quality": 15,          # Amount + quality of public code: commits, repos, stars, language diversity
+    "founder_market_fit": 15,      # 230% more likely to grow (NFX) — derived from vault + LinkedIn
+    "linkedin_quality": 12,        # Employer prestige + role progression (subsumes big-tech employer signal)
+    "technical_background": 12,    # +230% for B2B (First Round)
+
+    # Medium signals
+    "emotional_stability": 10,     # Only Big Five trait consistent across ALL stages (PNAS)
+    "prior_shipped_product": 10,   # 34% vs 22% success rate (HBS) — verifiable from GitHub/App Store/PH
+
+    # Small signals
     "female_founder": 8,           # 63% outperformance (First Round)
-    "big_tech_employer": 12,       # 160% outperformance (First Round)
-    "elite_school": 8,             # ~220% outperformance — network signal, not ability
-    "age_under_25": 5,             # ~30% above average (First Round)
-    "prior_shipped_product": 10,   # 34% vs 22% success rate (HBS)
-    "founder_market_fit": 15,      # 230% more likely to grow (NFX)
-    "emotional_stability": 10,     # Only trait consistent across ALL stages (PNAS)
-    # Penalties
-    "solo_founder_penalty": -10,   # 25% lower seed valuation (Carta 2025)
-    "high_neuroticism_penalty": -10, # Consistent negative predictor (PNAS)
+    "elite_school": 8,             # ~220% outperformance — but mostly a network signal, not ability
+    "implied_intelligence": 6,     # Claude-derived from vault writing quality / conceptual depth
+    "age_under_25": 5,             # ~30% above average (First Round) — venture-backed software bias
+
+    # Penalty
+    "high_neuroticism_penalty": -10,  # Consistent negative predictor across all stages (PNAS)
 }
+
+# Max theoretical lift above baseline: 15+15+12+12+10+10+8+8+6+5 = 101
+# Min realistic floor below baseline: -10
+# Baseline: 50 → score capped at 0-100
 
 
 def compute_founder_score(
-    has_co_founder: bool = False,
     technical_background: bool = False,
     female_founder: bool = False,
-    big_tech_employer: bool = False,
     elite_school: bool = False,
     age_under_25: bool = False,
     prior_shipped_product: bool = False,
+    github_quality: Optional[str] = None,      # "low" | "medium" | "high"
+    linkedin_quality: Optional[str] = None,    # "low" | "medium" | "high"
     founder_market_fit: Optional[str] = None,  # "low" | "medium" | "high"
-    emotional_stability: Optional[str] = None,  # "low" | "medium" | "high"
+    emotional_stability: Optional[str] = None, # "low" | "medium" | "high"
+    implied_intelligence: Optional[str] = None,# "low" | "medium" | "high"
 ) -> dict:
     """
     Compute a founder readiness score (0-100) from structured profile signals.
     Returns score + breakdown for display on the brain card.
+
+    Note: graded signals scale with grade:
+      high   → full weight
+      medium → half weight
+      low    → 0 points (no penalty)
     """
     score = 50  # baseline
     breakdown = {}
 
-    if has_co_founder:
-        score += SIGNAL_WEIGHTS["has_co_founder"]
-        breakdown["Co-founder"] = f"+{SIGNAL_WEIGHTS['has_co_founder']} (team vs. solo)"
-    else:
-        score += SIGNAL_WEIGHTS["solo_founder_penalty"]
-        breakdown["Solo founder"] = f"{SIGNAL_WEIGHTS['solo_founder_penalty']} (lower valuation signal)"
+    if github_quality:
+        pts = _graded(github_quality, SIGNAL_WEIGHTS["github_quality"])
+        if pts:
+            score += pts
+            breakdown[f"GitHub ({github_quality})"] = f"+{pts}"
+
+    if founder_market_fit:
+        pts = _graded(founder_market_fit, SIGNAL_WEIGHTS["founder_market_fit"])
+        if pts:
+            score += pts
+            breakdown[f"Founder-market fit ({founder_market_fit})"] = f"+{pts}"
+
+    if linkedin_quality:
+        pts = _graded(linkedin_quality, SIGNAL_WEIGHTS["linkedin_quality"])
+        if pts:
+            score += pts
+            breakdown[f"LinkedIn ({linkedin_quality})"] = f"+{pts}"
 
     if technical_background:
         score += SIGNAL_WEIGHTS["technical_background"]
         breakdown["Technical background"] = f"+{SIGNAL_WEIGHTS['technical_background']}"
 
-    if female_founder:
-        score += SIGNAL_WEIGHTS["female_founder"]
-        breakdown["Diverse team"] = f"+{SIGNAL_WEIGHTS['female_founder']}"
-
-    if big_tech_employer:
-        score += SIGNAL_WEIGHTS["big_tech_employer"]
-        breakdown["Big-tech experience"] = f"+{SIGNAL_WEIGHTS['big_tech_employer']}"
-
-    if elite_school:
-        score += SIGNAL_WEIGHTS["elite_school"]
-        breakdown["Elite school network"] = f"+{SIGNAL_WEIGHTS['elite_school']}"
-
-    if age_under_25:
-        score += SIGNAL_WEIGHTS["age_under_25"]
-        breakdown["Under 25"] = f"+{SIGNAL_WEIGHTS['age_under_25']}"
+    if emotional_stability == "low":
+        score += SIGNAL_WEIGHTS["high_neuroticism_penalty"]
+        breakdown["Emotional stability (low)"] = f"{SIGNAL_WEIGHTS['high_neuroticism_penalty']} (neuroticism signal)"
+    elif emotional_stability == "high":
+        score += SIGNAL_WEIGHTS["emotional_stability"]
+        breakdown["Emotional stability (high)"] = f"+{SIGNAL_WEIGHTS['emotional_stability']}"
+    elif emotional_stability == "medium":
+        score += SIGNAL_WEIGHTS["emotional_stability"] // 2
+        breakdown["Emotional stability (medium)"] = f"+{SIGNAL_WEIGHTS['emotional_stability'] // 2}"
 
     if prior_shipped_product:
         score += SIGNAL_WEIGHTS["prior_shipped_product"]
         breakdown["Prior shipped product"] = f"+{SIGNAL_WEIGHTS['prior_shipped_product']}"
 
-    if founder_market_fit == "high":
-        score += SIGNAL_WEIGHTS["founder_market_fit"]
-        breakdown["Founder-market fit"] = f"+{SIGNAL_WEIGHTS['founder_market_fit']} (strong domain obsession)"
-    elif founder_market_fit == "medium":
-        score += SIGNAL_WEIGHTS["founder_market_fit"] // 2
-        breakdown["Founder-market fit"] = f"+{SIGNAL_WEIGHTS['founder_market_fit'] // 2} (moderate)"
+    if female_founder:
+        score += SIGNAL_WEIGHTS["female_founder"]
+        breakdown["Diverse team"] = f"+{SIGNAL_WEIGHTS['female_founder']}"
 
-    if emotional_stability == "low":
-        score += SIGNAL_WEIGHTS["high_neuroticism_penalty"]
-        breakdown["Emotional stability"] = f"{SIGNAL_WEIGHTS['high_neuroticism_penalty']} (neuroticism signal)"
-    elif emotional_stability == "high":
-        score += SIGNAL_WEIGHTS["emotional_stability"]
-        breakdown["Emotional stability"] = f"+{SIGNAL_WEIGHTS['emotional_stability']}"
+    if elite_school:
+        score += SIGNAL_WEIGHTS["elite_school"]
+        breakdown["Elite school network"] = f"+{SIGNAL_WEIGHTS['elite_school']}"
+
+    if implied_intelligence:
+        pts = _graded(implied_intelligence, SIGNAL_WEIGHTS["implied_intelligence"])
+        if pts:
+            score += pts
+            breakdown[f"Implied intelligence ({implied_intelligence})"] = f"+{pts}"
+
+    if age_under_25:
+        score += SIGNAL_WEIGHTS["age_under_25"]
+        breakdown["Under 25"] = f"+{SIGNAL_WEIGHTS['age_under_25']}"
 
     return {
         "score": max(0, min(100, score)),
         "breakdown": breakdown,
         "label": _score_label(score),
     }
+
+
+def _graded(grade: str, max_pts: int) -> int:
+    """Scale points by grade: high=full, medium=half, low=0."""
+    if grade == "high":
+        return max_pts
+    if grade == "medium":
+        return max_pts // 2
+    return 0
 
 
 def _score_label(score: int) -> str:

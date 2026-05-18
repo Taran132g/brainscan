@@ -11,6 +11,7 @@ type FounderSignal = {
   shipped_before?: boolean;
   emotional_stability_signal?: "low" | "medium" | "high";
   market_orientation?: "b2b" | "consumer" | "infrastructure" | "mixed" | "unclear";
+  implied_intelligence?: "low" | "medium" | "high";
 };
 
 type BrainCard = {
@@ -188,6 +189,12 @@ export default function ProfilePage() {
                   <SignalPill
                     label="Market orientation"
                     value={brainCard.founder_signal.market_orientation}
+                  />
+                )}
+                {brainCard.founder_signal.implied_intelligence && (
+                  <SignalPill
+                    label="Implied intelligence"
+                    value={brainCard.founder_signal.implied_intelligence}
                   />
                 )}
               </div>

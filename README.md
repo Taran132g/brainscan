@@ -78,24 +78,29 @@ Most co-founder platforms ask you to fill out a survey. FindingFounders reads yo
 
 ---
 
-## Founder Scoring Research
+## Founder Scoring Rubric
 
-The brain card and matching rubric are grounded in empirical research on what actually predicts founder success:
+Every user on this platform is by definition solo and looking for a co-founder, so traditional "2+ founders" and "solo penalty" signals are meaningless here — they'd apply to either 0% or 100% of users. The rubric uses verifiable platform signals (GitHub, LinkedIn) plus LLM-derived signals from the vault instead.
 
-| Signal | Direction | Evidence |
+| Signal | Max Points | Source |
 |---|---|---|
-| 2+ co-founders vs. solo | Positive | 163% outperformance (First Round, n=300+) |
-| Technical co-founder (B2B) | Positive | 230% outperformance (First Round) |
-| Female founder on team | Positive | 63% outperformance (First Round) |
-| Prior big-tech employer | Positive | 160% outperformance, +50% valuation (First Round) |
-| Elite school (Ivy/Stanford/MIT) | Positive | ~220% outperformance (First Round) |
-| Age under 25 at founding | Positive | ~30% above average (First Round) |
-| Prior shipped product | Positive | 34% vs. 22% success rate (HBS) |
-| High neuroticism | Negative | Consistent across all stages (PNAS, n=10,541) |
-| Solo founder | Negative | 25% lower seed valuation (Carta 2025) |
-| Founder-market fit | Positive | 230% more likely to grow (NFX) |
+| GitHub quality (commits, repos, stars, language diversity) | +15 | Verifiable build signal |
+| Founder-market fit | +15 | 230% more likely to grow (NFX) |
+| LinkedIn quality (employer prestige, role progression) | +12 | Subsumes big-tech employer (+160% First Round) |
+| Technical background | +12 | +230% for B2B (First Round) |
+| Emotional stability | +10 | Only Big Five trait consistent across stages (PNAS, n=10,541) |
+| Prior shipped product | +10 | 34% vs 22% success rate (HBS) |
+| Female founder on team | +8 | 63% outperformance (First Round) |
+| Elite school (network signal) | +8 | ~220% outperformance — network, not ability (First Round) |
+| Implied intelligence (Claude-derived from vault) | +6 | Small signal — writing quality, conceptual depth |
+| Age under 25 at founding | +5 | ~30% above average — venture-software bias (First Round) |
+| **High neuroticism penalty** | **-10** | Consistent negative predictor (PNAS) |
 
-Sources: PNAS (2023, n=10,541) · First Round Capital 10-Year Study · Kauffman Foundation · Paul Graham/YC · HBS · Carta · NFX
+Graded signals (GitHub, LinkedIn, founder-market fit, emotional stability, implied intelligence) scale: `high` = full points, `medium` = half, `low` = 0.
+
+Baseline is 50. Max theoretical: 100. See `backend/services/founder_score.py` for implementation.
+
+Sources: PNAS (2023, n=10,541) · First Round Capital 10-Year Study · Kauffman Foundation · Paul Graham/YC · HBS · NFX
 
 ---
 

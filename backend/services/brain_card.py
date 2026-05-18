@@ -39,7 +39,9 @@ Return your analysis by calling the `submit_brain_card` tool with these sections
   - domain_obsession: low | medium | high (signs of deep specific interest)
   - shipped_before: true | false (evidence of having shipped a product, side project, or substantial work)
   - emotional_stability_signal: low | medium | high (steady reasoning vs. anxious/reactive writing)
-  - market_orientation: b2b | consumer | infrastructure | mixed | unclear"""
+  - market_orientation: b2b | consumer | infrastructure | mixed | unclear
+  - implied_intelligence: low | medium | high (judged from writing quality, conceptual depth,
+    reasoning sophistication, and ability to handle complex ideas — be calibrated, not generous)"""
 
 
 BRAIN_CARD_TOOL = {
@@ -68,6 +70,7 @@ BRAIN_CARD_TOOL = {
                     "shipped_before",
                     "emotional_stability_signal",
                     "market_orientation",
+                    "implied_intelligence",
                 ],
                 "properties": {
                     "domain_obsession": {"enum": ["low", "medium", "high"]},
@@ -76,6 +79,7 @@ BRAIN_CARD_TOOL = {
                     "market_orientation": {
                         "enum": ["b2b", "consumer", "infrastructure", "mixed", "unclear"]
                     },
+                    "implied_intelligence": {"enum": ["low", "medium", "high"]},
                 },
             },
         },
