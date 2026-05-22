@@ -5,6 +5,9 @@ import { useParams } from "next/navigation";
 import { Brain, User, Lightbulb, Heart, Users, ArrowRight, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
+import { computeRank } from "@/lib/founder-rank";
+import { FounderRankBadge } from "@/components/FounderRankBadge";
 
 type FounderSignal = {
   domain_obsession?: "low" | "medium" | "high";
@@ -59,6 +62,7 @@ function SignalPill({ label, value }: { label: string; value: string }) {
 
 export default function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
+  const { user } = useAuth();
   const [brainCard, setBrainCard] = useState<BrainCard | null>(null);
   const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
   const [userName, setUserName] = useState("");
@@ -168,10 +172,23 @@ export default function ProfilePage() {
 
             {/* Vault stats line */}
             {vaultQuality && (
-              <p className="text-xs mb-8" style={{ color: "var(--text-secondary)" }}>
+              <p className="text-xs mb-6" style={{ color: "var(--text-secondary)" }}>
                 Built from {vaultQuality.stats.note_count.toLocaleString()} notes · {vaultQuality.stats.total_words.toLocaleString()} words · {vaultQuality.stats.avg_words_per_note} avg words/note
               </p>
             )}
+
+            {/* Rank badge */}
+            {brainCard?.founder_signal && (() => {
+              const rankInfo = computeRank(
+                brainCard.founder_signal as Parameters<typeof computeRank>[0],
+                user?.user_metadata as Parameters<typeof computeRank>[1]
+              );
+              return (
+                <div className="mb-8">
+                  <FounderRankBadge rank={rankInfo.rank} tier={rankInfo.tier} size="lg" showDescription />
+                </div>
+              );
+            })()}
 
             {/* Founder signal pills */}
             {brainCard?.founder_signal && (

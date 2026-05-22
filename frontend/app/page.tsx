@@ -1,5 +1,9 @@
-import { Brain, Zap, Shield, ArrowRight, Upload, Users } from "lucide-react";
+import { Brain, Zap, Shield, ArrowRight, Upload, Users, Award, Globe2 } from "lucide-react";
 import { SmartCta } from "@/components/SmartCta";
+import { FounderGlobe } from "@/components/FounderGlobe";
+import { TIER_INFO } from "@/lib/fake-users";
+
+const TIER_ORDER = ["Visionary", "Builder", "Operator", "Explorer", "Newcomer"] as const;
 
 export default function Home() {
   return (
@@ -19,7 +23,7 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="flex flex-col items-center text-center px-6 pt-24 pb-20">
+      <section className="flex flex-col items-center text-center px-6 pt-20 pb-12 max-w-5xl mx-auto">
         <div
           className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-8 border"
           style={{ borderColor: "var(--accent)", color: "var(--accent)", backgroundColor: "var(--accent-glow)" }}
@@ -29,18 +33,19 @@ export default function Home() {
         </div>
 
         <h1
-          className="text-5xl font-bold leading-tight max-w-2xl mb-6"
+          className="text-5xl md:text-6xl font-bold leading-tight max-w-3xl mb-6"
           style={{ color: "var(--text-primary)" }}
         >
-          Find founders who think like{" "}
-          <span style={{ color: "var(--accent)" }}>you do</span>
+          Find founders who think{" "}
+          <span style={{ color: "var(--accent)" }}>like you do</span>
         </h1>
 
         <p className="text-lg max-w-xl mb-10 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-          Upload your Obsidian vault. We analyze how you think, what you're building, and what you value — then find co-founders whose brains genuinely complement yours.
+          Upload your Obsidian vault. We analyze how you think, what you&apos;re building, and what you value —
+          then match you with co-founders whose brains genuinely complement yours.
         </p>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 mb-16">
           <SmartCta
             className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
@@ -58,6 +63,43 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Globe section */}
+      <section className="px-6 pb-20 max-w-6xl mx-auto">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 text-xs font-medium mb-3" style={{ color: "var(--accent)" }}>
+            <Globe2 size={14} />
+            500+ FOUNDERS WORLDWIDE
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            A growing network of builders
+          </h2>
+          <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
+            Founders from San Francisco to Bangalore to Lagos — each one with a brain card that captures how they actually think.
+          </p>
+        </div>
+
+        <div
+          className="rounded-2xl border overflow-hidden"
+          style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+        >
+          <FounderGlobe height={520} interactive={false} />
+        </div>
+
+        {/* Tier legend */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
+          {TIER_ORDER.map((tier) => (
+            <div
+              key={tier}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border"
+              style={{ borderColor: TIER_INFO[tier].color, backgroundColor: TIER_INFO[tier].bg }}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TIER_INFO[tier].color }} />
+              <span style={{ color: TIER_INFO[tier].color, fontWeight: 600 }}>{tier}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* How it works */}
       <section id="how-it-works" className="px-6 py-20 max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold text-center mb-12" style={{ color: "var(--text-primary)" }}>
@@ -69,19 +111,19 @@ export default function Home() {
               icon: <Upload size={22} style={{ color: "var(--accent)" }} />,
               step: "01",
               title: "Upload your vault",
-              desc: "Export your Obsidian vault as a zip and upload it. Your notes stay private — we only store the meaning, not the content.",
+              desc: "Export your Obsidian vault as a zip. Your notes stay private — we only store the meaning, not the content.",
             },
             {
               icon: <Brain size={22} style={{ color: "var(--accent)" }} />,
               step: "02",
-              title: "We build your brain card",
-              desc: "AI analyzes how you think, what you're building, your values, and what kind of co-founder would complement you.",
+              title: "Get your brain card",
+              desc: "AI analyzes how you think, what you're building, your values, and ranks you 1–10 as a founder.",
             },
             {
               icon: <Users size={22} style={{ color: "var(--accent)" }} />,
               step: "03",
-              title: "Get matched",
-              desc: "Describe what you're looking for. We search every brain in our network and return ranked compatibility reports.",
+              title: "Match by tier and signal",
+              desc: "Find co-founders ranked Visionary, Builder, or Operator who complement your strengths and gaps.",
             },
           ].map((item) => (
             <div
@@ -100,6 +142,50 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Tier system */}
+      <section className="px-6 py-20 max-w-5xl mx-auto">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 text-xs font-medium mb-3" style={{ color: "var(--accent)" }}>
+            <Award size={14} />
+            FOUNDER TIERS
+          </div>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            Ranked 1–10. Five tiers.
+          </h2>
+          <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
+            Your rank is computed from your brain card, your shipped track record, and verifiable signals
+            from GitHub and LinkedIn. Higher rank = better match quality.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {TIER_ORDER.map((tier) => {
+            const info = TIER_INFO[tier];
+            return (
+              <div
+                key={tier}
+                className="p-5 rounded-xl border flex flex-col gap-3"
+                style={{ backgroundColor: "var(--surface)", borderColor: info.color }}
+              >
+                <div className="flex items-center justify-between">
+                  <div
+                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                    style={{ backgroundColor: info.color, color: "#0a0e17" }}
+                  >
+                    {info.minRank === 9 ? "10" : info.minRank === 7 ? "8" : info.minRank === 5 ? "6" : info.minRank === 3 ? "4" : "2"}
+                  </div>
+                  <span className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>
+                    {info.minRank}–{info.minRank === 9 ? 10 : info.minRank + 1}
+                  </span>
+                </div>
+                <h3 className="font-bold" style={{ color: info.color }}>{tier}</h3>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{info.description}</p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Privacy callout */}
       <section className="px-6 py-16">
         <div
@@ -111,7 +197,8 @@ export default function Home() {
             Your notes never leave your container
           </h3>
           <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            We convert your vault into embeddings — mathematical representations of meaning — stored in your private namespace. Raw text is never shared with other users, accessible to our team, or used for training. When matching runs, only vectors are compared.
+            We convert your vault into embeddings — mathematical representations of meaning — stored in your private namespace.
+            Raw text is never shared with other users, accessible to our team, or used for training. Only vectors are compared.
           </p>
         </div>
       </section>

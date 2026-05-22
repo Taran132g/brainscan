@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink } from "lucide-react";
+import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Globe2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { computeRank } from "@/lib/founder-rank";
+import { FounderRankBadge } from "@/components/FounderRankBadge";
 
 type VaultQuality = {
   score: number;
@@ -28,6 +30,13 @@ export default function DashboardOverview() {
     if (quality) setVaultQuality(JSON.parse(quality));
   }, [user]);
 
+  const rankInfo = brainCard
+    ? computeRank(
+        brainCard.founder_signal as Parameters<typeof computeRank>[0],
+        user?.user_metadata as Parameters<typeof computeRank>[1]
+      )
+    : null;
+
   const displayName =
     (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
   const firstName = displayName.split(" ")[0] || "there";
@@ -48,6 +57,11 @@ export default function DashboardOverview() {
 
       {hasBrainCard ? (
         <>
+          {/* Rank banner */}
+          {rankInfo && (
+            <FounderRankBadge rank={rankInfo.rank} tier={rankInfo.tier} size="lg" showDescription />
+          )}
+
           {/* Brain card snapshot */}
           <section
             className="p-6 rounded-xl border"
@@ -109,9 +123,15 @@ export default function DashboardOverview() {
                 href="/upload"
               />
               <ActionCard
+                icon={<Globe2 size={18} style={{ color: "var(--accent)" }} />}
+                title="Discover founders"
+                description="Browse 500+ founders worldwide on the globe"
+                href="/dashboard/discover"
+              />
+              <ActionCard
                 icon={<Sparkles size={18} style={{ color: "var(--accent)" }} />}
                 title="Matching"
-                description="Coming soon — find co-founders who complement you"
+                description="Coming soon — opt in to AI-driven match suggestions"
                 disabled
               />
             </div>
