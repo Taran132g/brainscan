@@ -106,13 +106,22 @@ export default function ProfilePage() {
           <Brain size={22} style={{ color: "var(--accent)" }} />
           <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
         </div>
-        <Link
-          href="/upload"
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-          style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
-        >
-          <RefreshCw size={13} /> Re-upload vault
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard"
+            className="text-sm hover:underline"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/upload"
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+          >
+            <RefreshCw size={13} /> Re-upload vault
+          </Link>
+        </div>
       </nav>
 
       <div className="max-w-2xl mx-auto px-6 py-12">

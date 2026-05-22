@@ -16,7 +16,7 @@ export default function AuthPage() {
   // If user is already signed in, send them straight to upload
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/upload");
+      router.replace("/dashboard");
     }
   }, [loading, user, router]);
 

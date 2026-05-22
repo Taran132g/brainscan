@@ -23,7 +23,7 @@ function VerifyContent() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/upload");
+      router.replace("/dashboard");
     }
   }, [loading, user, router]);
 
@@ -70,7 +70,7 @@ function VerifyContent() {
       return;
     }
     setVerified(true);
-    setTimeout(() => router.push("/upload"), 600);
+    setTimeout(() => router.push("/dashboard"), 600);
   };
 
   const handleResend = async () => {

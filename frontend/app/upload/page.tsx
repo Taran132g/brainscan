@@ -169,8 +169,8 @@ export default function UploadPage() {
           >
             <LogOut size={12} /> Sign out
           </button>
-          <Link href="/" className="flex items-center gap-1 text-sm" style={{ color: "var(--text-secondary)" }}>
-            <ArrowLeft size={14} /> Home
+          <Link href="/dashboard" className="flex items-center gap-1 text-sm" style={{ color: "var(--text-secondary)" }}>
+            <ArrowLeft size={14} /> Dashboard
           </Link>
         </div>
       </nav>

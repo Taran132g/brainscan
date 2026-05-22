@@ -21,7 +21,7 @@ export function SmartCta({
   children,
   className,
   style,
-  signedInHref = "/upload",
+  signedInHref = "/dashboard",
   signedOutHref = "/auth",
 }: Props) {
   const { user, loading } = useAuth();

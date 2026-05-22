@@ -43,7 +43,7 @@ export default function AuthCallbackPage() {
         if (cancelled) return;
         const { data } = await supabase.auth.getSession();
         if (data.session) {
-          router.replace("/upload");
+          router.replace("/dashboard");
           return;
         }
         await new Promise((r) => setTimeout(r, 200));
