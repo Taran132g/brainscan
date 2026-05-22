@@ -17,10 +17,12 @@ cp .env.example .env
 Fill in `backend/.env`:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...           # from console.anthropic.com
-PINECONE_API_KEY=pcsk-...              # from app.pinecone.io
+ANTHROPIC_API_KEY=sk-ant-...               # from console.anthropic.com
+PINECONE_API_KEY=pcsk-...                  # from app.pinecone.io
 PINECONE_INDEX_NAME=finding-founders
-SUPABASE_JWT_SECRET=your-jwt-secret    # set after Supabase setup below
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_JWT_SECRET=...                    # legacy HS256 secret (optional for ES256-only projects)
+SUPABASE_SERVICE_ROLE_KEY=...              # service-role secret (Phase 2 — Postgres writes)
 ```
 
 > **Note on `SUPABASE_JWT_SECRET`:** the backend uses this to verify auth
@@ -50,14 +52,36 @@ uvicorn main:app --reload --port 8000
 
 In the Supabase dashboard:
 1. Go to **Settings** → **API**
-2. Copy these three values:
-   - **Project URL** — e.g. `https://abcdefgh.supabase.co` → frontend
-   - **anon public key** — long JWT starting with `eyJ...` → frontend
-   - **JWT Secret** (further down on the same page, under "JWT Settings") → backend `SUPABASE_JWT_SECRET`
+2. Copy these four values:
+   - **Project URL** — e.g. `https://abcdefgh.supabase.co` → frontend `.env.local` + backend `.env`
+   - **anon public key** — long JWT starting with `eyJ...` → frontend `.env.local`
+   - **service_role secret** — long JWT starting with `eyJ...` → backend `.env` (`SUPABASE_SERVICE_ROLE_KEY`)
+   - **JWT Secret** (further down, "JWT Keys" section, "Legacy JWT Secret") → backend `.env` (`SUPABASE_JWT_SECRET`)
 
-> The JWT secret is what your FastAPI backend uses to verify that incoming
-> requests have a real Supabase session. Treat it like a server secret —
-> never expose it to the browser.
+> **Two backend secrets:**
+> - `SUPABASE_SERVICE_ROLE_KEY` lets the backend write to Postgres bypassing
+>   row-level security. The routes are already JWT-gated so this is safe.
+> - `SUPABASE_JWT_SECRET` is the legacy HS256 fallback for verifying tokens.
+>   New Supabase projects issue ES256 tokens, verified via the public JWKS
+>   endpoint, so this can be left blank for greenfield projects.
+
+Both are server-only — never bundle them into a `NEXT_PUBLIC_*` var.
+
+### Run the Phase 2 database migration
+
+The backend persists vault uploads and profile snapshots to Postgres tables.
+You need to create those tables once.
+
+1. In the Supabase dashboard, open **SQL Editor** → **New query**
+2. Open `backend/migrations/0001_initial_schema.sql` from this repo
+3. Paste the entire contents into the SQL Editor and click **Run**
+
+This creates three tables (`profiles`, `vault_uploads`, `matches`) with
+RLS policies, and installs a trigger that auto-creates a `profiles` row
+whenever someone signs up.
+
+> If you re-run the migration, all statements are idempotent (`if not exists`,
+> `or replace`, `drop policy if exists`) — safe to apply multiple times.
 
 ### Enable Google OAuth
 

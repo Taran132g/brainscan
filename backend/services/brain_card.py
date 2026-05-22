@@ -29,7 +29,7 @@ BRAIN_CARD_USER_PROMPT = """Here are excerpts from this person's knowledge base:
 {notes}
 </notes>
 
-Return your analysis by calling the `submit_brain_card` tool with these sections:
+{external_signals_block}Return your analysis by calling the `submit_brain_card` tool with these sections:
 - who_they_are: Background, domain expertise, where they are in their journey.
 - what_theyre_building: Specific projects, ideas, or businesses they're working on.
 - how_they_think: Mental models, frameworks, recurring patterns in their thinking.
@@ -129,9 +129,16 @@ def _sample_diverse_chunks(chunks: List[dict], target: int = 40) -> List[dict]:
     return selected
 
 
-def generate_brain_card(chunks: List[dict]) -> dict:
+def generate_brain_card(chunks: List[dict], external_signals: dict | None = None) -> dict:
     """
     Generate a structured brain card from vault chunks.
+
+    `external_signals`: optional dict of public profile signals (github_url,
+    linkedin_url). We don't fetch the actual content here — that's Phase 2
+    GitHub OAuth work — but knowing the person has these profiles raises
+    Claude's confidence on signals like founder_market_fit and adjusts
+    "what they need in a co-founder" appropriately.
+
     Returns {sections: dict, founder_signal: dict, raw: dict}.
     """
     selected = _sample_diverse_chunks(chunks, target=40)
@@ -140,6 +147,19 @@ def generate_brain_card(chunks: List[dict]) -> dict:
         f"[{c['title']} / {c.get('heading', '')}]\n{c['text']}" for c in selected
     )
 
+    # Build the optional external-signals block
+    signals_lines = []
+    if external_signals:
+        if external_signals.get("github_url"):
+            signals_lines.append(f"- GitHub profile: {external_signals['github_url']}")
+        if external_signals.get("linkedin_url"):
+            signals_lines.append(f"- LinkedIn profile: {external_signals['linkedin_url']}")
+    external_block = (
+        "External signals (public profiles — use as supporting context, not raw evidence):\n"
+        + "\n".join(signals_lines)
+        + "\n\n"
+    ) if signals_lines else ""
+
     message = _get_client().messages.create(
         model="claude-opus-4-7",
         max_tokens=2500,
@@ -147,7 +167,10 @@ def generate_brain_card(chunks: List[dict]) -> dict:
         tools=[BRAIN_CARD_TOOL],
         tool_choice={"type": "tool", "name": "submit_brain_card"},
         messages=[
-            {"role": "user", "content": BRAIN_CARD_USER_PROMPT.format(notes=notes)}
+            {"role": "user", "content": BRAIN_CARD_USER_PROMPT.format(
+                notes=notes,
+                external_signals_block=external_block,
+            )}
         ],
     )
 

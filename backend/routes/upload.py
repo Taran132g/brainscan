@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from services.vault_parser import parse_vault_zip
 from services.vault_quality import assess_vault_quality
@@ -7,6 +8,7 @@ from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path
+from services.db import record_vault_upload, upsert_profile_snapshot
 
 router = APIRouter()
 
@@ -14,6 +16,8 @@ router = APIRouter()
 @router.post("/upload/{user_id}")
 async def upload_vault(
     file: UploadFile = File(...),
+    github_username: Optional[str] = Form(default=None),
+    linkedin_url: Optional[str] = Form(default=None),
     user_id: str = Depends(verify_user_owns_path),
 ):
     if not file.filename.endswith(".zip"):
@@ -56,7 +60,31 @@ async def upload_vault(
     count = upsert_chunks(user_id, all_chunks)
 
     # Generate brain card from raw (pre-embedding) chunks
-    brain_card = generate_brain_card(all_chunks)
+    external_signals = {}
+    if github_username:
+        external_signals["github_url"] = f"https://github.com/{github_username}"
+    if linkedin_url:
+        external_signals["linkedin_url"] = linkedin_url
+    brain_card = generate_brain_card(all_chunks, external_signals=external_signals)
+
+    # Persist to Postgres — both an append-only upload record and a profile snapshot.
+    # Soft-fails if Supabase isn't configured yet (so dev still works pre-migration).
+    record_vault_upload(
+        user_id=user_id,
+        stats=quality["stats"],
+        quality_score=quality["quality_score"],
+        chunks_indexed=count,
+        brain_card=brain_card,
+        github_username=github_username,
+        linkedin_url=linkedin_url,
+    )
+    upsert_profile_snapshot(
+        user_id=user_id,
+        brain_card=brain_card,
+        quality_score=quality["quality_score"],
+        github_username=github_username,
+        linkedin_url=linkedin_url,
+    )
 
     return JSONResponse({
         "status": "success",

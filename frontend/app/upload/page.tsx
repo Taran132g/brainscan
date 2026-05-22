@@ -13,10 +13,13 @@ import {
   Apple,
   Monitor,
   LogOut,
+  Github,
+  Linkedin,
 } from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 
 type Stage = "idle" | "processing" | "done" | "error";
 
@@ -30,6 +33,8 @@ export default function UploadPage() {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState("");
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
+  const [githubUsername, setGithubUsername] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
 
   // Auth guard
   useEffect(() => {
@@ -37,6 +42,14 @@ export default function UploadPage() {
       router.replace("/auth");
     }
   }, [authLoading, user, router]);
+
+  // Pre-fill GitHub/LinkedIn from saved profile
+  useEffect(() => {
+    if (!user) return;
+    const md = (user.user_metadata ?? {}) as { github?: string; linkedin?: string };
+    if (md.github) setGithubUsername(md.github);
+    if (md.linkedin) setLinkedinUrl(md.linkedin);
+  }, [user]);
 
   const steps = [
     { label: "Parsing vault", key: "parsing" },
@@ -73,8 +86,21 @@ export default function UploadPage() {
     setError("");
     setProgress("Uploading vault...");
 
+    // Persist GitHub/LinkedIn back to user_metadata so the profile page reflects it
+    if (githubUsername || linkedinUrl) {
+      await supabase.auth.updateUser({
+        data: {
+          ...(user.user_metadata ?? {}),
+          ...(githubUsername ? { github: githubUsername } : {}),
+          ...(linkedinUrl ? { linkedin: linkedinUrl } : {}),
+        },
+      });
+    }
+
     const formData = new FormData();
     formData.append("file", selectedFile);
+    if (githubUsername) formData.append("github_username", githubUsername);
+    if (linkedinUrl) formData.append("linkedin_url", linkedinUrl);
 
     try {
       const stepDelay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -213,6 +239,55 @@ export default function UploadPage() {
               <p className="text-xs mt-4 pt-4 border-t" style={{ color: "var(--text-secondary)", borderColor: "var(--border)" }}>
                 Vault size limit: 100MB. Minimum: 200 notes (with avg 300+ words) or 1,000 notes total.
               </p>
+            </div>
+
+            {/* Optional profile links */}
+            <div
+              className="p-6 rounded-xl border mb-6"
+              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+            >
+              <h2 className="text-sm font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                Add your GitHub and LinkedIn (optional but recommended)
+              </h2>
+              <p className="text-xs mb-5" style={{ color: "var(--text-secondary)" }}>
+                We&apos;ll use these to sharpen your brain card. Adding them now raises your founder rank — verifiable signals beat self-reported ones.
+              </p>
+
+              <div className="grid grid-cols-1 gap-3">
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium flex items-center gap-2" style={{ color: "var(--text-secondary)" }}>
+                    <Github size={12} /> GitHub username
+                  </span>
+                  <div
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg border"
+                    style={{ backgroundColor: "var(--background)", borderColor: "var(--border)" }}
+                  >
+                    <span className="text-xs" style={{ color: "var(--text-secondary)" }}>github.com/</span>
+                    <input
+                      type="text"
+                      value={githubUsername}
+                      onChange={(e) => setGithubUsername(e.target.value.trim())}
+                      placeholder="Taran132g"
+                      className="flex-1 bg-transparent text-sm outline-none"
+                      style={{ color: "var(--text-primary)" }}
+                    />
+                  </div>
+                </label>
+
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium flex items-center gap-2" style={{ color: "var(--text-secondary)" }}>
+                    <Linkedin size={12} /> LinkedIn URL
+                  </span>
+                  <input
+                    type="url"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value.trim())}
+                    placeholder="https://linkedin.com/in/your-handle"
+                    className="px-3 py-2 rounded-lg text-sm outline-none border"
+                    style={{ backgroundColor: "var(--background)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+                  />
+                </label>
+              </div>
             </div>
 
             {/* Drop zone */}
