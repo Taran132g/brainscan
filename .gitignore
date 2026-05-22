@@ -59,8 +59,9 @@ Thumbs.db
 *.swp
 *.swo
 
-# ---------- Logs ----------
+# ---------- Logs + runtime ----------
 *.log
+*.pid
 npm-debug.log*
 
 # ---------- ML / Pinecone cache ----------
