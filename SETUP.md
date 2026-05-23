@@ -67,21 +67,107 @@ In the Supabase dashboard:
 
 Both are server-only — never bundle them into a `NEXT_PUBLIC_*` var.
 
-### Run the Phase 2 database migration
+### Run the Phase 2 database migrations
 
-The backend persists vault uploads and profile snapshots to Postgres tables.
-You need to create those tables once.
+The backend persists vault uploads, profile snapshots, and paywall state to
+Postgres tables. Run these once, in order.
 
-1. In the Supabase dashboard, open **SQL Editor** → **New query**
-2. Open `backend/migrations/0001_initial_schema.sql` from this repo
-3. Paste the entire contents into the SQL Editor and click **Run**
+1. **Migration `0001_initial_schema.sql`** — creates the `profiles`,
+   `vault_uploads`, and `matches` tables plus the auth signup trigger
+2. **Migration `0002_backfill_profiles.sql`** — backfills profile rows
+   for any users that signed up before the trigger existed, and syncs
+   their latest brain card from `vault_uploads`
+3. **Migration `0003_paywall_counters.sql`** — adds upload counters and
+   the `upload_credits` table for the Stripe paywall
 
-This creates three tables (`profiles`, `vault_uploads`, `matches`) with
-RLS policies, and installs a trigger that auto-creates a `profiles` row
-whenever someone signs up.
+For each: Supabase Dashboard → SQL Editor → New query → paste the file
+contents → Run.
 
-> If you re-run the migration, all statements are idempotent (`if not exists`,
-> `or replace`, `drop policy if exists`) — safe to apply multiple times.
+> All migrations are idempotent. Safe to re-run if anything goes wrong.
+
+---
+
+## 4. Stripe Setup (Phase 2 paywall)
+
+### Create a Stripe account
+
+1. [stripe.com](https://stripe.com) → sign up
+2. Stay in **test mode** for development (toggle in the top-right)
+3. Activate live mode only when you're ready to take real payments
+
+### Create the 4 products + prices
+
+In the Stripe dashboard, go to **Products → Add product** four times:
+
+| Product name        | Pricing               | Recurring? |
+|---------------------|-----------------------|------------|
+| Brain Card          | $0.99 USD             | one-time   |
+| Full Membership     | $3.99 USD             | monthly    |
+| Extra Upload        | $0.99 USD             | one-time   |
+| Upgrade to Full     | $3.00 USD             | one-time   |
+
+After each one, click into the product and copy the **price ID** (starts
+with `price_...`). You'll add all four to `backend/.env`:
+
+```
+STRIPE_PRICE_BRAIN_CARD=price_...
+STRIPE_PRICE_FULL_MEMBERSHIP=price_...
+STRIPE_PRICE_EXTRA_UPLOAD=price_...
+STRIPE_PRICE_UPGRADE=price_...
+```
+
+### Grab the API keys
+
+**Developers → API keys** in the dashboard:
+
+- **Publishable key** (`pk_test_...`) → frontend `.env.local` as `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+- **Secret key** (`sk_test_...`) → backend `.env` as `STRIPE_SECRET_KEY` (server-only)
+
+### Webhook for local dev (Stripe CLI)
+
+Stripe webhooks need to reach your backend. For local development the
+Stripe CLI forwards live events to `localhost`:
+
+```bash
+brew install stripe/stripe-cli/stripe   # or download from stripe.com/docs/stripe-cli
+stripe login
+stripe listen --forward-to http://localhost:8001/api/payment/webhook
+```
+
+The CLI prints a signing secret on first run (starts with `whsec_...`).
+Copy it into `backend/.env`:
+
+```
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+Keep the `stripe listen` process running while you test — it forwards
+real Stripe events to your local backend.
+
+### Test a checkout flow
+
+1. Start backend + frontend + `stripe listen`
+2. Sign in → go to `/pricing`
+3. Click "Get your brain card" → completes a Stripe Checkout in test mode
+4. Use card number `4242 4242 4242 4242`, any future date, any CVC, any ZIP
+5. After completing, watch the `stripe listen` console — you'll see
+   `checkout.session.completed` and the backend will set
+   `subscription_tier = brain_card` + grant one upload credit
+6. Refresh `/dashboard/settings` → plan should now show "Brain Card — one-time"
+
+### Production webhook
+
+When you deploy, replace `stripe listen` with a real webhook endpoint:
+
+1. Stripe Dashboard → **Developers → Webhooks → Add endpoint**
+2. URL: `https://your-backend-host.com/api/payment/webhook`
+3. Events:
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+4. Copy the new signing secret into your production environment's
+   `STRIPE_WEBHOOK_SECRET`
 
 ### Enable Google OAuth
 

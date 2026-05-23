@@ -1,12 +1,51 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, CreditCard, LogOut, Trash2, Lock } from "lucide-react";
+import Link from "next/link";
+import { Mail, CreditCard, LogOut, Trash2, Lock, ArrowRight, ExternalLink, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { API_BASE_URL, authedFetch } from "@/lib/api";
+
+type SubStatus = {
+  subscription_tier: "free" | "brain_card" | "full" | string;
+  subscription_status: string;
+  has_stripe_customer: boolean;
+};
+
+const TIER_LABEL: Record<string, { label: string; color: string }> = {
+  free: { label: "Free — no brain card yet", color: "#94a3b8" },
+  brain_card: { label: "Brain Card — one-time", color: "#a78bfa" },
+  full: { label: "Full Membership — active", color: "#10b981" },
+};
 
 export default function SettingsPage() {
   const router = useRouter();
   const { user, signOut } = useAuth();
+  const [sub, setSub] = useState<SubStatus | null>(null);
+  const [portalBusy, setPortalBusy] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    authedFetch(`${API_BASE_URL}/api/payment/status/${user.id}`)
+      .then((r) => r.json())
+      .then((data: SubStatus) => setSub(data))
+      .catch(() => setSub({ subscription_tier: "free", subscription_status: "inactive", has_stripe_customer: false }));
+  }, [user]);
+
+  const openBillingPortal = async () => {
+    setPortalBusy(true);
+    try {
+      const res = await authedFetch(`${API_BASE_URL}/api/payment/billing-portal`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      const { url } = (await res.json()) as { url: string };
+      window.location.href = url;
+    } catch {
+      setPortalBusy(false);
+    }
+  };
+
+  const tierInfo = sub ? TIER_LABEL[sub.subscription_tier] ?? TIER_LABEL.free : null;
 
   return (
     <div className="flex flex-col gap-8">
@@ -19,7 +58,7 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Account info */}
+      {/* Account */}
       <Section title="Account">
         <Row icon={<Mail size={15} />} label="Email" value={user?.email ?? "—"} />
         <Row
@@ -34,18 +73,52 @@ export default function SettingsPage() {
         <Row
           icon={<CreditCard size={15} />}
           label="Plan"
-          value="Free — brain card generated"
+          value={
+            sub ? (
+              <span style={{ color: tierInfo?.color }}>{tierInfo?.label}</span>
+            ) : (
+              <span style={{ color: "var(--text-secondary)" }}>Loading...</span>
+            )
+          }
         />
+        {sub && (
+          <div className="flex flex-wrap gap-3 mt-2">
+            {sub.subscription_tier === "free" && (
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--accent)", color: "white" }}
+              >
+                See plans <ArrowRight size={13} />
+              </Link>
+            )}
+            {sub.subscription_tier === "brain_card" && (
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium"
+                style={{ backgroundColor: "var(--accent)", color: "white" }}
+              >
+                Upgrade to Full Membership <ArrowRight size={13} />
+              </Link>
+            )}
+            {sub.has_stripe_customer && (
+              <button
+                onClick={openBillingPortal}
+                disabled={portalBusy}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium border disabled:opacity-50"
+                style={{ borderColor: "var(--border)", color: "var(--text-primary)" }}
+              >
+                {portalBusy ? <Loader2 size={13} className="animate-spin" /> : <ExternalLink size={13} />}
+                Manage billing
+              </button>
+            )}
+          </div>
+        )}
         <p className="text-xs px-4 py-3 mt-2 rounded-lg" style={{ color: "var(--text-secondary)", backgroundColor: "var(--background)" }}>
-          Stripe integration coming soon. Pricing tiers:
-          <br />
-          • <strong>$0.99</strong> — brain card only (one-time)
-          <br />
-          • <strong>$3.99/mo</strong> — full membership with matching + 2 free re-uploads/month
-          <br />
-          • <strong>$3.00 upgrade</strong> — brain card → full membership
-          <br />
-          • <strong>$0.99</strong> — each additional upload beyond included
+          <strong>$0.99</strong> — Brain Card (one-time) ·{" "}
+          <strong>$3.99/mo</strong> — Full Membership (2 free re-uploads/month + matching) ·{" "}
+          <strong>$0.99</strong> — each extra upload ·{" "}
+          <strong>$3.00</strong> — upgrade Brain Card → Full
         </p>
       </Section>
 
@@ -94,7 +167,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function Row({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between px-4 py-3 rounded-lg"
       style={{ backgroundColor: "var(--background)" }}>

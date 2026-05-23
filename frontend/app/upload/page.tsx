@@ -130,6 +130,14 @@ export default function UploadPage() {
       if (!response.ok) {
         const data = await response.json();
         const detail = data.detail;
+
+        // 402 paywall — route to pricing instead of showing a wall of text
+        if (response.status === 402 && typeof detail === "object" && detail?.code === "payment_required") {
+          const product = detail.required_product as string | undefined;
+          router.push(`/pricing${product ? `?required=${product}` : ""}`);
+          return;
+        }
+
         if (typeof detail === "object" && detail?.message) {
           const stats = detail.stats;
           const statsLine = stats

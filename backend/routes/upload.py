@@ -9,6 +9,7 @@ from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path
 from services.db import record_vault_upload, upsert_profile_snapshot
+from services.paywall import check_upload_allowed
 
 router = APIRouter()
 
@@ -22,6 +23,10 @@ async def upload_vault(
 ):
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Upload must be a .zip file")
+
+    # Paywall — raises 402 with a structured error if the user can't upload.
+    # Charged BEFORE any heavy work so we never burn Claude tokens on a denied request.
+    payment_info = check_upload_allowed(user_id)
 
     zip_bytes = await file.read()
     if len(zip_bytes) > 100 * 1024 * 1024:  # 100MB limit
@@ -96,4 +101,5 @@ async def upload_vault(
             "stats": quality["stats"],
         },
         "brain_card": brain_card,
+        "payment_info": payment_info,
     })
