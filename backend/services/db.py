@@ -68,21 +68,25 @@ def upsert_profile_snapshot(
     linkedin_url: Optional[str] = None,
 ) -> None:
     """
-    Update the user's profile row with their latest brain card snapshot +
-    GitHub/LinkedIn. Used to keep the profile in sync with the most recent
-    vault analysis.
+    Upsert the user's profile row with their latest brain card snapshot +
+    GitHub/LinkedIn. Real upsert (insert-or-update) — the previous version
+    used .update() which silently did nothing if the row didn't exist (the
+    handle_new_user trigger only fires on new sign-ups, so pre-existing
+    auth users had no profile row).
     """
     try:
-        update: dict = {
+        payload: dict = {
+            "id": user_id,
             "brain_card": brain_card.get("sections"),
             "founder_signal": brain_card.get("founder_signal"),
             "brain_confidence": quality_score,
         }
         if github_username:
-            update["github"] = github_username
+            payload["github"] = github_username
         if linkedin_url:
-            update["linkedin"] = linkedin_url
+            payload["linkedin"] = linkedin_url
 
-        get_client().table("profiles").update(update).eq("id", user_id).execute()
+        # on_conflict=id → upsert pattern. Supabase Postgrest handles INSERT/UPDATE.
+        get_client().table("profiles").upsert(payload, on_conflict="id").execute()
     except Exception as e:
         print(f"[db] upsert_profile_snapshot failed: {e}")
