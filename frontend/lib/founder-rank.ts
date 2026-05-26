@@ -86,14 +86,12 @@ export function computeRank(
     score += 6 * GRADED_MAX[signal.implied_intelligence];
   }
 
-  // GitHub — prefer verified OAuth-derived grade over the self-reported username
-  if (profile?.github_quality) {
-    // 15 max from founder_score.py rubric, scaled by grade
-    score += 15 * GRADED_MAX[profile.github_quality];
-  } else if (profile?.github && profile.github.length > 0) {
-    // Partial credit — they typed a username but never connected OAuth
-    score += 5;
-  }
+  // GitHub is required before uploading. Quality is a modifier, not a major
+  // signal — tight ±2.5 range so a thin profile doesn't tank a founder and
+  // a strong one doesn't dominate the score.
+  if (profile?.github_quality === "high") score += 2.5;
+  else if (profile?.github_quality === "low") score -= 2.5;
+  // medium → no change
 
   if (profile?.linkedin && profile.linkedin.length > 0) score += 6;
   if (profile?.school && profile.school.length > 0) score += 4;

@@ -8,7 +8,7 @@ from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path
-from services.db import record_vault_upload, upsert_profile_snapshot
+from services.db import record_vault_upload, upsert_profile_snapshot, get_client
 from services.paywall import check_upload_allowed
 
 router = APIRouter()
@@ -24,7 +24,27 @@ async def upload_vault(
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Upload must be a .zip file")
 
-    # Paywall — raises 402 with a structured error if the user can't upload.
+    # Gate 1: GitHub must be connected. We require this BEFORE the paywall so
+    # we don't charge users only to bounce them on a missing requirement.
+    profile_res = (
+        get_client()
+        .table("profiles")
+        .select("github_connected, github_data, github_quality")
+        .eq("id", user_id)
+        .limit(1)
+        .execute()
+    )
+    profile_row = (profile_res.data or [{}])[0]
+    if not profile_row.get("github_connected"):
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code": "github_required",
+                "message": "Connect your GitHub before uploading — we need it to verify your founder signal.",
+            },
+        )
+
+    # Gate 2: Paywall — raises 402 if the user can't upload.
     # Charged BEFORE any heavy work so we never burn Claude tokens on a denied request.
     payment_info = check_upload_allowed(user_id)
 
@@ -64,10 +84,17 @@ async def upload_vault(
     delete_user_namespace(user_id)
     count = upsert_chunks(user_id, all_chunks)
 
-    # Generate brain card from raw (pre-embedding) chunks
+    # Generate brain card from raw chunks PLUS the rich GitHub data we now have
+    # from OAuth. Claude can reference specific projects, languages, and stars
+    # in the brain card instead of just knowing a URL exists.
     external_signals = {}
-    if github_username:
-        external_signals["github_url"] = f"https://github.com/{github_username}"
+    gh_data = profile_row.get("github_data") or {}
+    gh_username = gh_data.get("username") or github_username
+    if gh_username:
+        external_signals["github_url"] = f"https://github.com/{gh_username}"
+    if gh_data:
+        external_signals["github_data"] = gh_data
+        external_signals["github_quality"] = profile_row.get("github_quality")
     if linkedin_url:
         external_signals["linkedin_url"] = linkedin_url
     brain_card = generate_brain_card(all_chunks, external_signals=external_signals)

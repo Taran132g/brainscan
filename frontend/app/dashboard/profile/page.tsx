@@ -5,6 +5,7 @@ import { Save, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { ConnectGitHub } from "@/components/ConnectGitHub";
+import { ScanStats } from "@/components/ScanStats";
 
 type ProfileFields = {
   full_name: string;
@@ -81,6 +82,8 @@ export default function ProfilePage() {
       </div>
 
       <section className="flex flex-col gap-5">
+        <ScanStats />
+
         <Suspense fallback={null}>
           <ConnectGitHub />
         </Suspense>

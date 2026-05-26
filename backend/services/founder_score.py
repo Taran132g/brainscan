@@ -12,8 +12,13 @@ from typing import Optional
 # Kauffman Foundation, YC/Paul Graham, HBS, NFX
 
 SIGNAL_WEIGHTS = {
-    # Strong verifiable signals (high cap)
-    "github_quality": 15,          # Amount + quality of public code: commits, repos, stars, language diversity
+    # github_quality is REQUIRED (every user must connect GitHub before upload),
+    # so it's a modifier, not a major signal. Tight range so a thin GitHub
+    # doesn't tank a founder, and a strong one doesn't carry the whole score.
+    "github_quality_high": 2.5,    # bonus for proven shipping
+    "github_quality_low": -2.5,    # penalty for thin / abandoned profile
+    # github_quality_medium = 0 (no adjustment)
+
     "founder_market_fit": 15,      # 230% more likely to grow (NFX) — derived from vault + LinkedIn
     "linkedin_quality": 12,        # Employer prestige + role progression (subsumes big-tech employer signal)
     "technical_background": 12,    # +230% for B2B (First Round)
@@ -62,10 +67,14 @@ def compute_founder_score(
     breakdown = {}
 
     if github_quality:
-        pts = _graded(github_quality, SIGNAL_WEIGHTS["github_quality"])
-        if pts:
-            score += pts
-            breakdown[f"GitHub ({github_quality})"] = f"+{pts}"
+        # Tight ±2.5 range — github is required so we modify, not dominate
+        if github_quality == "high":
+            score += SIGNAL_WEIGHTS["github_quality_high"]
+            breakdown["GitHub (high)"] = f"+{SIGNAL_WEIGHTS['github_quality_high']}"
+        elif github_quality == "low":
+            score += SIGNAL_WEIGHTS["github_quality_low"]
+            breakdown["GitHub (low)"] = f"{SIGNAL_WEIGHTS['github_quality_low']} (thin / abandoned profile)"
+        # medium → no change
 
     if founder_market_fit:
         pts = _graded(founder_market_fit, SIGNAL_WEIGHTS["founder_market_fit"])

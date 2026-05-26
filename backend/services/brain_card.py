@@ -147,15 +147,40 @@ def generate_brain_card(chunks: List[dict], external_signals: dict | None = None
         f"[{c['title']} / {c.get('heading', '')}]\n{c['text']}" for c in selected
     )
 
-    # Build the optional external-signals block
+    # Build the optional external-signals block. When GitHub OAuth has been
+    # connected, we include the actual top repos / languages / stats so Claude
+    # can reference specific projects in "What They're Building" instead of
+    # treating the GitHub URL as a black box.
     signals_lines = []
     if external_signals:
         if external_signals.get("github_url"):
             signals_lines.append(f"- GitHub profile: {external_signals['github_url']}")
         if external_signals.get("linkedin_url"):
             signals_lines.append(f"- LinkedIn profile: {external_signals['linkedin_url']}")
+
+        gh_data = external_signals.get("github_data")
+        if gh_data:
+            stats = gh_data.get("stats") or {}
+            signals_lines.append(
+                f"- GitHub stats: {stats.get('non_fork_repos', 0)} non-fork repos, "
+                f"{stats.get('total_stars', 0)} total stars, "
+                f"{stats.get('language_count', 0)} languages "
+                f"({', '.join((stats.get('languages') or [])[:6])})"
+            )
+            quality = external_signals.get("github_quality")
+            if quality:
+                signals_lines.append(f"- GitHub quality grade: {quality}")
+            top_repos = gh_data.get("top_repos") or []
+            if top_repos:
+                signals_lines.append("- Top repos (use to ground 'What They're Building'):")
+                for r in top_repos[:6]:
+                    lang = f" · {r.get('language')}" if r.get("language") else ""
+                    stars = f" · ⭐{r.get('stars', 0)}" if r.get("stars") else ""
+                    desc = f": {r['description']}" if r.get("description") else ""
+                    signals_lines.append(f"    • {r.get('name', '?')}{lang}{stars}{desc}")
+
     external_block = (
-        "External signals (public profiles — use as supporting context, not raw evidence):\n"
+        "External signals (public profiles + verified GitHub data — incorporate into the brain card):\n"
         + "\n".join(signals_lines)
         + "\n\n"
     ) if signals_lines else ""
