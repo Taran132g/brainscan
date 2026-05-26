@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Save, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { ConnectGitHub } from "@/components/ConnectGitHub";
 
 type ProfileFields = {
   full_name: string;
@@ -80,6 +81,10 @@ export default function ProfilePage() {
       </div>
 
       <section className="flex flex-col gap-5">
+        <Suspense fallback={null}>
+          <ConnectGitHub />
+        </Suspense>
+
         <FieldGroup title="Required">
           <Field label="Full name" required>
             <input type="text" value={fields.full_name} onChange={(e) => update("full_name", e.target.value)} className={inputCls} placeholder="Taranveer Singh" />

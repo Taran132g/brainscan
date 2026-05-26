@@ -6,6 +6,7 @@ import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Globe2 } from "
 import { useAuth } from "@/lib/auth-context";
 import { computeRank } from "@/lib/founder-rank";
 import { FounderRankBadge } from "@/components/FounderRankBadge";
+import { API_BASE_URL, authedFetch } from "@/lib/api";
 
 type VaultQuality = {
   score: number;
@@ -21,6 +22,7 @@ export default function DashboardOverview() {
   const { user } = useAuth();
   const [brainCard, setBrainCard] = useState<BrainCard | null>(null);
   const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
+  const [githubQuality, setGithubQuality] = useState<"low" | "medium" | "high" | undefined>();
 
   useEffect(() => {
     if (!user) return;
@@ -28,12 +30,23 @@ export default function DashboardOverview() {
     const quality = sessionStorage.getItem(`vault_quality_${user.id}`);
     if (card) setBrainCard(JSON.parse(card));
     if (quality) setVaultQuality(JSON.parse(quality));
+
+    // Pull verified GitHub grade if the user has connected
+    authedFetch(`${API_BASE_URL}/api/github/status`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.github_quality) setGithubQuality(data.github_quality);
+      })
+      .catch(() => { /* not connected — leave undefined */ });
   }, [user]);
 
   const rankInfo = brainCard
     ? computeRank(
         brainCard.founder_signal as Parameters<typeof computeRank>[0],
-        user?.user_metadata as Parameters<typeof computeRank>[1]
+        {
+          ...(user?.user_metadata as Record<string, unknown>),
+          ...(githubQuality ? { github_quality: githubQuality } : {}),
+        } as Parameters<typeof computeRank>[1]
       )
     : null;
 

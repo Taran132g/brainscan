@@ -56,6 +56,10 @@ type ProfileFields = {
   twitter?: string;
   website?: string;
   gender?: string;
+  // Populated once the user runs the GitHub OAuth flow. Overrides the
+  // soft "has github username" check below — verified data outweighs
+  // self-reported handles.
+  github_quality?: Grade;
 };
 
 const GRADED_MAX = { high: 1.0, medium: 0.5, low: 0 } as const;
@@ -82,8 +86,15 @@ export function computeRank(
     score += 6 * GRADED_MAX[signal.implied_intelligence];
   }
 
-  // Profile signals
-  if (profile?.github && profile.github.length > 0) score += 8; // partial credit, real github_quality needs API
+  // GitHub — prefer verified OAuth-derived grade over the self-reported username
+  if (profile?.github_quality) {
+    // 15 max from founder_score.py rubric, scaled by grade
+    score += 15 * GRADED_MAX[profile.github_quality];
+  } else if (profile?.github && profile.github.length > 0) {
+    // Partial credit — they typed a username but never connected OAuth
+    score += 5;
+  }
+
   if (profile?.linkedin && profile.linkedin.length > 0) score += 6;
   if (profile?.school && profile.school.length > 0) score += 4;
   if (profile?.age && parseInt(profile.age) < 25) score += 5;

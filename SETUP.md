@@ -169,6 +169,71 @@ When you deploy, replace `stripe listen` with a real webhook endpoint:
 4. Copy the new signing secret into your production environment's
    `STRIPE_WEBHOOK_SECRET`
 
+---
+
+## 5. GitHub OAuth (Phase 2 — verified founder signals)
+
+Connecting GitHub gives the founder ranker real data (repos, stars,
+languages) instead of a self-reported username. Required for the
+`github_quality` signal on the founder score.
+
+### Create a GitHub OAuth App
+
+1. Go to **[github.com/settings/developers](https://github.com/settings/developers)** → **OAuth Apps** → **New OAuth App**
+2. Fill in:
+   - **Application name:** `FindingFounders (local)`
+   - **Homepage URL:** `http://localhost:3000`
+   - **Authorization callback URL:** `http://localhost:8001/api/github/callback`
+3. **Register application**
+4. On the next screen, copy the **Client ID**
+5. Click **Generate a new client secret** → copy the secret value
+   (only shown once — store it immediately)
+
+### Add to backend env
+
+In `backend/.env`:
+```
+GITHUB_CLIENT_ID=Iv1.xxxxxxxxxxxxxxxx
+GITHUB_CLIENT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+BACKEND_URL=http://localhost:8001
+```
+
+### Run migration 0004
+
+```sql
+-- In Supabase SQL Editor
+-- Paste contents of backend/migrations/0004_github_columns.sql
+```
+
+This adds `github_connected`, `github_access_token`, `github_data` (jsonb),
+`github_quality`, `github_connected_at` to `profiles`. Idempotent.
+
+### Restart backend, test the flow
+
+```bash
+kill $(cat ~/FindingFounders/backend.pid) 2>/dev/null
+cd ~/FindingFounders/backend && source venv/bin/activate
+nohup uvicorn main:app --port 8001 > ~/FindingFounders/backend.log 2>&1 &
+echo $! > ~/FindingFounders/backend.pid
+```
+
+Then in the app:
+
+1. Sign in → `/dashboard/profile`
+2. Top of the page: **Connect GitHub** card
+3. Click **Connect GitHub** → consent on GitHub → bounce back to profile
+4. Card now shows your repos / stars / languages / quality grade
+
+The founder rank on `/dashboard` and `/profile/[id]` automatically picks up
+the verified GitHub signal — your tier may bump up depending on grade.
+
+### Production OAuth app
+
+When you deploy, create a second OAuth App on GitHub with the production
+callback (`https://your-backend.com/api/github/callback`) and use those
+Client ID/Secret in production environment variables. Test OAuth Apps
+should not be used in production.
+
 ### Enable Google OAuth
 
 1. In Supabase: **Authentication** → **Providers** → **Google** → toggle **Enable**
