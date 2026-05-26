@@ -9,6 +9,7 @@ Pricing tiers (locked decision):
                     (brain_card → full)
 """
 
+import json
 import os
 from typing import Literal, Optional
 import stripe
@@ -126,22 +127,33 @@ def handle_webhook_event(payload: bytes, signature: str) -> dict:
     Verify and dispatch a Stripe webhook event.
     Raises stripe.error.SignatureVerificationError on bad signature.
     Returns {handled: bool, type: str, action?: str}.
+
+    Stripe SDK v15+ returns StripeObject instances from construct_event() — the
+    handlers below expect plain dicts (so .get() works on optional fields).
+    We re-parse the verified payload to plain dicts after signature checking.
     """
     _init_stripe()
     webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
     if not webhook_secret:
         raise RuntimeError("STRIPE_WEBHOOK_SECRET not set in backend/.env")
 
-    event = stripe.Webhook.construct_event(payload, signature, webhook_secret)
+    # construct_event verifies the signature (we rely on this for security)
+    event_obj = stripe.Webhook.construct_event(payload, signature, webhook_secret)
+    event_type = event_obj["type"]
 
-    if event["type"] == "checkout.session.completed":
-        return _on_checkout_completed(event["data"]["object"])
-    if event["type"] in ("customer.subscription.updated", "customer.subscription.created"):
-        return _on_subscription_change(event["data"]["object"])
-    if event["type"] == "customer.subscription.deleted":
-        return _on_subscription_deleted(event["data"]["object"])
+    # Re-parse the same payload to get plain dicts for downstream code.
+    # Safe because the signature was just verified against the same bytes.
+    event_dict = json.loads(payload.decode("utf-8"))
+    data_object = event_dict["data"]["object"]
 
-    return {"handled": False, "type": event["type"]}
+    if event_type == "checkout.session.completed":
+        return _on_checkout_completed(data_object)
+    if event_type in ("customer.subscription.updated", "customer.subscription.created"):
+        return _on_subscription_change(data_object)
+    if event_type == "customer.subscription.deleted":
+        return _on_subscription_deleted(data_object)
+
+    return {"handled": False, "type": event_type}
 
 
 def _on_checkout_completed(session: dict) -> dict:
