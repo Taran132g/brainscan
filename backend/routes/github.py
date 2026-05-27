@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from pydantic import BaseModel
 from typing import Optional
 
 import httpx
@@ -18,6 +19,45 @@ from services.github_service import (
 from services.github_service import _frontend_url  # for callback redirect
 
 router = APIRouter()
+
+
+class GitHubSyncRequest(BaseModel):
+    access_token: str
+
+
+@router.post("/github/sync")
+async def github_sync(
+    body: GitHubSyncRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Accept a GitHub provider access token (from Supabase's OAuth callback)
+    and use it to fetch the user's GitHub data, grade it, and persist to
+    profiles. The frontend captures Supabase's provider_token right after
+    linkIdentity / signInWithOAuth completes and posts it here.
+
+    Replaces the direct-OAuth dance (/api/github/connect + /callback) for
+    accounts whose GitHub OAuth Apps misbehave (the 0v23 format issue).
+    """
+    if not body.access_token or not body.access_token.startswith(("gho_", "ghu_", "ghs_", "ghr_", "ghp_")):
+        # gho_ = OAuth user-to-server (what Supabase issues for GitHub provider)
+        # accept a few prefixes defensively
+        raise HTTPException(status_code=400, detail="Invalid GitHub access token format")
+
+    try:
+        data = fetch_user_data(body.access_token)
+        quality = grade_quality(data)
+        persist_to_profile(user_id, body.access_token, data, quality)
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=502, detail=f"GitHub API error: {e.response.status_code}")
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"GitHub network error: {e}")
+
+    return JSONResponse({
+        "ok": True,
+        "username": data.get("username"),
+        "quality": quality,
+    })
 
 
 @router.get("/github/connect")

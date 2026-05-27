@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Globe2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { computeRank } from "@/lib/founder-rank";
-import { FounderRankBadge } from "@/components/FounderRankBadge";
+import { BrainCardHero } from "@/components/BrainCardHero";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 
 type VaultQuality = {
@@ -40,20 +39,15 @@ export default function DashboardOverview() {
       .catch(() => { /* not connected — leave undefined */ });
   }, [user]);
 
-  const rankInfo = brainCard
-    ? computeRank(
-        brainCard.founder_signal as Parameters<typeof computeRank>[0],
-        {
-          ...(user?.user_metadata as Record<string, unknown>),
-          ...(githubQuality ? { github_quality: githubQuality } : {}),
-        } as Parameters<typeof computeRank>[1]
-      )
-    : null;
-
   const displayName =
     (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? "";
   const firstName = displayName.split(" ")[0] || "there";
   const hasBrainCard = !!brainCard;
+
+  const heroProfile = {
+    ...(user?.user_metadata as Record<string, unknown>),
+    ...(githubQuality ? { github_quality: githubQuality } : {}),
+  } as Parameters<typeof BrainCardHero>[0]["profile"];
 
   return (
     <div className="flex flex-col gap-8">
@@ -70,58 +64,30 @@ export default function DashboardOverview() {
 
       {hasBrainCard ? (
         <>
-          {/* Rank banner */}
-          {rankInfo && (
-            <FounderRankBadge rank={rankInfo.rank} tier={rankInfo.tier} size="lg" showDescription />
+          {/* Brain card hero — same visual as the public profile + OG share image */}
+          <BrainCardHero
+            name={displayName || "Founder"}
+            founderSignal={brainCard?.founder_signal as Parameters<typeof BrainCardHero>[0]["founderSignal"]}
+            brainConfidence={vaultQuality?.score ?? null}
+            profile={heroProfile}
+            variant="full"
+          />
+
+          {vaultQuality && (
+            <p className="-mt-4 text-xs" style={{ color: "var(--text-secondary)" }}>
+              Built from {vaultQuality.stats.note_count.toLocaleString()} notes ·{" "}
+              {vaultQuality.stats.total_words.toLocaleString()} words ·{" "}
+              {vaultQuality.stats.avg_words_per_note} avg words/note
+            </p>
           )}
 
-          {/* Brain card snapshot */}
-          <section
-            className="p-6 rounded-xl border"
-            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+          <Link
+            href={`/profile/${user?.id}`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+            style={{ color: "var(--accent)" }}
           >
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <Brain size={20} style={{ color: "var(--accent)" }} />
-                <h2 className="text-base font-semibold" style={{ color: "var(--text-primary)" }}>
-                  Your brain card
-                </h2>
-              </div>
-              {vaultQuality && (
-                <div className="text-right">
-                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>Brain confidence</div>
-                  <div className="text-xl font-bold" style={{ color: "var(--accent)" }}>
-                    {vaultQuality.score}%
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {vaultQuality && (
-              <p className="text-xs mb-4" style={{ color: "var(--text-secondary)" }}>
-                Built from {vaultQuality.stats.note_count.toLocaleString()} notes ·{" "}
-                {vaultQuality.stats.total_words.toLocaleString()} words ·{" "}
-                {vaultQuality.stats.avg_words_per_note} avg words/note
-              </p>
-            )}
-
-            {/* Signal pills */}
-            {brainCard?.founder_signal && (
-              <div className="flex flex-wrap gap-2 mb-6">
-                {Object.entries(brainCard.founder_signal).map(([key, value]) => (
-                  <SignalPill key={key} label={prettyLabel(key)} value={String(value)} />
-                ))}
-              </div>
-            )}
-
-            <Link
-              href={`/profile/${user?.id}`}
-              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
-              style={{ color: "var(--accent)" }}
-            >
-              View full brain card <ArrowRight size={13} />
-            </Link>
-          </section>
+            View full brain card <ArrowRight size={13} />
+          </Link>
 
           {/* Quick actions */}
           <section>
@@ -184,35 +150,6 @@ export default function DashboardOverview() {
           </p>
         </section>
       )}
-    </div>
-  );
-}
-
-function prettyLabel(key: string): string {
-  return key
-    .replace(/_/g, " ")
-    .replace(/\bsignal\b/i, "")
-    .replace(/\b\w/g, (l) => l.toUpperCase())
-    .trim();
-}
-
-function SignalPill({ label, value }: { label: string; value: string }) {
-  const color =
-    value === "high" || value === "true" || value === "yes"
-      ? "#10b981"
-      : value === "medium"
-      ? "#f59e0b"
-      : value === "low" || value === "false" || value === "no"
-      ? "#f87171"
-      : "var(--accent)";
-  const displayValue = value === "true" ? "yes" : value === "false" ? "no" : value;
-  return (
-    <div
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--background)" }}
-    >
-      <span style={{ color: "var(--text-secondary)" }}>{label}:</span>
-      <span style={{ color, fontWeight: 600 }}>{displayValue}</span>
     </div>
   );
 }

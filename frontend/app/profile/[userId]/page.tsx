@@ -2,12 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Brain, User, Lightbulb, Heart, Users, ArrowRight, RefreshCw } from "lucide-react";
+import { Brain, User, Lightbulb, Heart, Users, ArrowRight, RefreshCw, Share2, Check } from "lucide-react";
 import Link from "next/link";
-import { API_BASE_URL, authedFetch } from "@/lib/api";
+import { API_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { computeRank } from "@/lib/founder-rank";
-import { FounderRankBadge } from "@/components/FounderRankBadge";
+import { BrainCardHero } from "@/components/BrainCardHero";
 
 type FounderSignal = {
   domain_obsession?: "low" | "medium" | "high";
@@ -21,6 +20,15 @@ type BrainCard = {
   sections: Record<string, string>;
   founder_signal?: FounderSignal;
   raw?: unknown;
+};
+
+type PublicProfileFields = {
+  full_name?: string;
+  age?: string;
+  city?: string;
+  school?: string;
+  github?: string;
+  linkedin?: string;
 };
 
 type VaultQuality = {
@@ -40,34 +48,46 @@ const SECTION_CONFIG = [
   { key: "What They Likely Need in a Co-Founder", icon: <Users size={16} />, color: "#10b981" },
 ];
 
-function SignalPill({ label, value }: { label: string; value: string }) {
-  const intensityColor =
-    value === "high" || value === "yes"
-      ? "#10b981"
-      : value === "medium"
-      ? "#f59e0b"
-      : value === "low" || value === "no"
-      ? "#f87171"
-      : "var(--accent)";
-  return (
-    <div
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border"
-      style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-    >
-      <span style={{ color: "var(--text-secondary)" }}>{label}:</span>
-      <span style={{ color: intensityColor, fontWeight: 600 }}>{value}</span>
-    </div>
-  );
-}
-
 export default function ProfilePage() {
   const { userId } = useParams<{ userId: string }>();
   const { user } = useAuth();
   const [brainCard, setBrainCard] = useState<BrainCard | null>(null);
   const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
   const [userName, setUserName] = useState("");
+  const [publicProfile, setPublicProfile] = useState<PublicProfileFields | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [shareCopied, setShareCopied] = useState(false);
+
+  const handleShare = async () => {
+    if (typeof window === "undefined") return;
+    const url = `${window.location.origin}/profile/${userId}`;
+    const title = `${userName || "My"} FindingFounders Brain Card`;
+
+    // Only use the OS share sheet on touch devices — desktop Chrome's
+    // navigator.share often opens nothing on non-HTTPS origins.
+    const isTouch =
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function" &&
+      (navigator.maxTouchPoints ?? 0) > 0;
+
+    if (isTouch) {
+      try {
+        await navigator.share({ title, url });
+        return;
+      } catch {
+        // User cancelled or share blocked — fall through to clipboard.
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this link:", url);
+    }
+  };
 
   useEffect(() => {
     // Try sessionStorage first (just came from upload)
@@ -82,11 +102,22 @@ export default function ProfilePage() {
       return;
     }
 
-    // Otherwise fetch from API
-    authedFetch(`${API_BASE_URL}/api/profile/${userId}/brain-card`)
-      .then((r) => r.json())
+    // Public cached snapshot — no auth required so the profile is shareable.
+    fetch(`${API_BASE_URL}/api/profile/${userId}/public-card`)
+      .then((r) => {
+        if (!r.ok) throw new Error("not found");
+        return r.json();
+      })
       .then((data) => {
         setBrainCard(data.brain_card);
+        setUserName(data.full_name || userId);
+        if (data.profile) setPublicProfile(data.profile);
+        if (data.brain_confidence != null) {
+          setVaultQuality({
+            score: data.brain_confidence,
+            stats: { note_count: 0, total_words: 0, avg_words_per_note: 0 },
+          });
+        }
         setLoading(false);
       })
       .catch(() => {
@@ -94,13 +125,6 @@ export default function ProfilePage() {
         setLoading(false);
       });
   }, [userId]);
-
-  const initials = userName
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
     <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen">
@@ -111,20 +135,41 @@ export default function ProfilePage() {
           <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link
-            href="/dashboard"
-            className="text-sm hover:underline"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Dashboard
-          </Link>
-          <Link
-            href="/upload"
+          <button
+            type="button"
+            onClick={handleShare}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
-            style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            <RefreshCw size={13} /> Re-upload vault
-          </Link>
+            {shareCopied ? <Check size={13} /> : <Share2 size={13} />}
+            {shareCopied ? "Copied" : "Share card"}
+          </button>
+          {user && (
+            <Link
+              href="/dashboard"
+              className="text-sm hover:underline"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              Dashboard
+            </Link>
+          )}
+          {user?.id === userId ? (
+            <Link
+              href="/upload"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
+              style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            >
+              <RefreshCw size={13} /> Re-upload vault
+            </Link>
+          ) : !user ? (
+            <Link
+              href="/auth"
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-opacity hover:opacity-80"
+              style={{ backgroundColor: "var(--surface)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+            >
+              Sign in
+            </Link>
+          ) : null}
         </div>
       </nav>
 
@@ -143,87 +188,24 @@ export default function ProfilePage() {
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="flex items-center gap-4 mb-6">
-              <div
-                className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold"
-                style={{ backgroundColor: "var(--accent)", color: "white" }}
-              >
-                {initials || "?"}
-              </div>
-              <div className="flex-1">
-                <h1 className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>
-                  {userName || userId}
-                </h1>
-                <p className="text-sm" style={{ color: "var(--text-secondary)" }}>Brain Card · Co-founder profile</p>
-              </div>
-              {vaultQuality && (
-                <div
-                  className="text-right px-3 py-2 rounded-lg border"
-                  style={{ borderColor: "var(--border)", backgroundColor: "var(--surface)" }}
-                >
-                  <div className="text-xs" style={{ color: "var(--text-secondary)" }}>Brain confidence</div>
-                  <div className="text-lg font-bold" style={{ color: "var(--accent)" }}>
-                    {vaultQuality.score}%
-                  </div>
-                </div>
-              )}
+            {/* Hero — matches the OG share-card visual */}
+            <div className="mb-8">
+              <BrainCardHero
+                name={userName || (userId as string)}
+                founderSignal={brainCard?.founder_signal}
+                brainConfidence={vaultQuality?.score ?? null}
+                profile={
+                  publicProfile ?? (user?.user_metadata as PublicProfileFields | undefined)
+                }
+                variant="full"
+              />
             </div>
 
-            {/* Vault stats line */}
-            {vaultQuality && (
+            {/* Vault stats line — only when we have real counts (session cache, not the public read) */}
+            {vaultQuality && vaultQuality.stats.note_count > 0 && (
               <p className="text-xs mb-6" style={{ color: "var(--text-secondary)" }}>
                 Built from {vaultQuality.stats.note_count.toLocaleString()} notes · {vaultQuality.stats.total_words.toLocaleString()} words · {vaultQuality.stats.avg_words_per_note} avg words/note
               </p>
-            )}
-
-            {/* Rank badge */}
-            {brainCard?.founder_signal && (() => {
-              const rankInfo = computeRank(
-                brainCard.founder_signal as Parameters<typeof computeRank>[0],
-                user?.user_metadata as Parameters<typeof computeRank>[1]
-              );
-              return (
-                <div className="mb-8">
-                  <FounderRankBadge rank={rankInfo.rank} tier={rankInfo.tier} size="lg" showDescription />
-                </div>
-              );
-            })()}
-
-            {/* Founder signal pills */}
-            {brainCard?.founder_signal && (
-              <div className="flex flex-wrap gap-2 mb-8">
-                {brainCard.founder_signal.domain_obsession && (
-                  <SignalPill
-                    label="Domain obsession"
-                    value={brainCard.founder_signal.domain_obsession}
-                  />
-                )}
-                {brainCard.founder_signal.emotional_stability_signal && (
-                  <SignalPill
-                    label="Emotional stability"
-                    value={brainCard.founder_signal.emotional_stability_signal}
-                  />
-                )}
-                {brainCard.founder_signal.shipped_before !== undefined && (
-                  <SignalPill
-                    label="Shipped before"
-                    value={brainCard.founder_signal.shipped_before ? "yes" : "no"}
-                  />
-                )}
-                {brainCard.founder_signal.market_orientation && (
-                  <SignalPill
-                    label="Market orientation"
-                    value={brainCard.founder_signal.market_orientation}
-                  />
-                )}
-                {brainCard.founder_signal.implied_intelligence && (
-                  <SignalPill
-                    label="Implied intelligence"
-                    value={brainCard.founder_signal.implied_intelligence}
-                  />
-                )}
-              </div>
             )}
 
             {/* Sections */}
@@ -258,33 +240,42 @@ export default function ProfilePage() {
               })}
             </div>
 
-            {/* CTA — matching (Phase 2) */}
-            <div
-              className="mt-8 p-6 rounded-xl border text-center"
-              style={{ backgroundColor: "var(--surface-2)", borderColor: "var(--border)" }}
-            >
-              <Users size={28} className="mx-auto mb-3" style={{ color: "var(--accent)" }} />
-              <h3 className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-                Ready to find your match?
-              </h3>
-              <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
-                Matching launches in Phase 2. Drop your email to get notified when it goes live.
-              </p>
-              <div className="flex gap-2 max-w-sm mx-auto">
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  className="flex-1 px-4 py-2 rounded-lg text-sm outline-none border"
-                  style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
-                />
-                <button
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium"
-                  style={{ backgroundColor: "var(--accent)", color: "white" }}
+            {/* Conversion CTA — only shown to visitors, not the profile owner */}
+            {user?.id !== userId && (
+              <Link
+                href={user ? "/upload" : "/auth"}
+                className="mt-10 block rounded-2xl border overflow-hidden transition-opacity hover:opacity-95"
+                style={{
+                  backgroundColor: "#0a0a0f",
+                  backgroundImage:
+                    "radial-gradient(circle at 15% 20%, rgba(99,102,241,0.22) 0%, transparent 55%), radial-gradient(circle at 85% 80%, rgba(139,92,246,0.18) 0%, transparent 55%)",
+                  borderColor: "rgba(148,163,184,0.18)",
+                  padding: "32px 36px",
+                  color: "white",
+                }}
+              >
+                <div className="flex items-center gap-3 mb-3" style={{ color: "#cbd5e1" }}>
+                  <Brain size={18} style={{ color: "#a78bfa" }} />
+                  <span className="text-xs uppercase tracking-wider font-semibold">
+                    Built with FindingFounders
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold mb-2">
+                  {user ? "Generate your own brain card." : "See what your brain card says about you."}
+                </h3>
+                <p className="text-sm mb-5" style={{ color: "#cbd5e1" }}>
+                  {user
+                    ? "Upload your vault — we'll pull 5 sections + a founder signal score from how you actually write."
+                    : "We extract a co-founder profile from your own writing. 5 sections, a founder signal score, and a public card you can share like this one."}
+                </p>
+                <span
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
+                  style={{ backgroundColor: "#6366f1", color: "white" }}
                 >
-                  Notify me <ArrowRight size={13} />
-                </button>
-              </div>
-            </div>
+                  {user ? "Upload your vault" : "Get your brain card"} <ArrowRight size={14} />
+                </span>
+              </Link>
+            )}
           </>
         )}
       </div>

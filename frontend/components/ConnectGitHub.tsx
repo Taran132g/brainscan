@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Github, Check, Loader2, X, Star, GitBranch, Code } from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 
 type GitHubStatus = {
   github_connected?: boolean;
@@ -35,6 +36,8 @@ export function ConnectGitHub() {
   const [status, setStatus] = useState<GitHubStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const syncedRef = useRef(false);
 
   const callbackMsg = (() => {
     if (params.get("github_connected") === "1") return { type: "success" as const, text: "GitHub connected." };
@@ -55,17 +58,64 @@ export function ConnectGitHub() {
 
   useEffect(() => { load(); }, []);
 
+  // After Supabase OAuth completes, we get a session with `provider_token`
+  // briefly. Capture it and forward to the backend to fetch GitHub data.
+  // (Provider tokens aren't persisted by Supabase — we have a small window.)
+  useEffect(() => {
+    const trySync = async (sessionLike: { provider_token?: string | null } | null) => {
+      if (!sessionLike?.provider_token || syncedRef.current) return;
+      syncedRef.current = true;
+      setSyncing(true);
+      setError("");
+      try {
+        const r = await authedFetch(`${API_BASE_URL}/api/github/sync`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ access_token: sessionLike.provider_token }),
+        });
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}));
+          throw new Error(typeof d.detail === "string" ? d.detail : "Sync failed");
+        }
+        await load();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to sync GitHub data");
+        syncedRef.current = false;
+      } finally {
+        setSyncing(false);
+      }
+    };
+
+    // Check current session on mount (handles the case where we just returned from OAuth)
+    supabase.auth.getSession().then(({ data }) => trySync(data.session));
+
+    // Also listen for auth state changes (USER_UPDATED fires after linkIdentity)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "USER_UPDATED" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        trySync(session);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
   const connect = async () => {
     setBusy(true);
     setError("");
+    syncedRef.current = false;
     try {
-      const r = await authedFetch(`${API_BASE_URL}/api/github/connect`);
-      if (!r.ok) {
-        const data = await r.json().catch(() => ({}));
-        throw new Error(typeof data.detail === "string" ? data.detail : "Could not start GitHub OAuth.");
-      }
-      const { url } = (await r.json()) as { url: string };
-      window.location.href = url;
+      // Supabase handles the GitHub OAuth dance via its own callback URL
+      // (configured in Supabase Auth Providers → GitHub). User bounces to
+      // GitHub, approves, comes back here with provider_token in the session.
+      const { error: err } = await supabase.auth.linkIdentity({
+        provider: "github",
+        options: {
+          scopes: "read:user public_repo",
+          redirectTo: window.location.href,
+        },
+      });
+      if (err) throw err;
+      // linkIdentity triggers a full-page redirect to GitHub.
+      // (If it returns without redirecting, something failed silently.)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start GitHub OAuth.");
       setBusy(false);
@@ -73,7 +123,7 @@ export function ConnectGitHub() {
   };
 
   const disconnect = async () => {
-    if (!confirm("Disconnect GitHub? Your founder rank will drop until you reconnect or upload again.")) return;
+    if (!confirm("Disconnect GitHub? Your founder rank will drop until you reconnect.")) return;
     setBusy(true);
     try {
       await authedFetch(`${API_BASE_URL}/api/github/disconnect`, { method: "POST" });
@@ -101,7 +151,7 @@ export function ConnectGitHub() {
             <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
               {connected
                 ? `Connected as ${status?.github_username ?? data?.username ?? ""}`
-                : "Boost your founder rank with verified GitHub data — commits, repos, languages."}
+                : "Required to upload your vault — we use real GitHub data to grade your founder rank."}
             </p>
           </div>
         </div>
@@ -117,12 +167,12 @@ export function ConnectGitHub() {
         ) : (
           <button
             onClick={connect}
-            disabled={busy}
+            disabled={busy || syncing}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <Github size={13} />}
-            Connect GitHub
+            {busy || syncing ? <Loader2 size={13} className="animate-spin" /> : <Github size={13} />}
+            {syncing ? "Fetching repos..." : "Connect GitHub"}
           </button>
         )}
       </div>

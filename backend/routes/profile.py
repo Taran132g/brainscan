@@ -9,6 +9,83 @@ from services.paywall import FULL_TIER_FREE_UPLOADS_PER_CYCLE
 router = APIRouter()
 
 
+@router.get("/profile/{user_id}/public-card")
+async def get_public_brain_card(user_id: str):
+    """
+    Public read of the cached brain card snapshot in `profiles`. Powers the
+    unauthenticated profile page (public-by-default share model). Returns the
+    same shape the client expects from /brain-card so the page can swap in.
+    """
+    supabase = get_client()
+    res = (
+        supabase.table("profiles")
+        .select("id, full_name, brain_card, founder_signal, brain_confidence, github, linkedin, school, age")
+        .eq("id", user_id)
+        .limit(1)
+        .execute()
+    )
+    row = (res.data or [None])[0]
+    if not row or not row.get("brain_card"):
+        raise HTTPException(status_code=404, detail="No public brain card for this user")
+
+    return {
+        "user_id": user_id,
+        "full_name": row.get("full_name") or "Founder",
+        "brain_card": {
+            "sections": row.get("brain_card"),
+            "founder_signal": row.get("founder_signal") or {},
+        },
+        "brain_confidence": row.get("brain_confidence"),
+        "profile": {
+            "full_name": row.get("full_name"),
+            "github": row.get("github"),
+            "linkedin": row.get("linkedin"),
+            "school": row.get("school"),
+            "age": row.get("age"),
+        },
+    }
+
+
+@router.get("/og/profile/{user_id}")
+async def get_og_profile(user_id: str):
+    """
+    Public OG-safe snapshot of a profile, used by the Next.js opengraph-image
+    route. No auth — social crawlers can't carry a session. Returns only the
+    minimal fields needed to render a share card.
+    """
+    supabase = get_client()
+    res = (
+        supabase.table("profiles")
+        .select("id, full_name, brain_confidence, founder_signal, github, linkedin, school, age")
+        .eq("id", user_id)
+        .limit(1)
+        .execute()
+    )
+    row = (res.data or [None])[0]
+    if not row:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Lifetime scan count — small extra read; cheap and useful on the card
+    scans_res = (
+        supabase.table("vault_uploads")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .execute()
+    )
+
+    return {
+        "user_id": user_id,
+        "full_name": row.get("full_name") or "Founder",
+        "brain_confidence": row.get("brain_confidence"),
+        "founder_signal": row.get("founder_signal") or {},
+        "github": row.get("github"),
+        "linkedin": row.get("linkedin"),
+        "school": row.get("school"),
+        "age": row.get("age"),
+        "total_scans": scans_res.count or 0,
+    }
+
+
 @router.get("/profile/{user_id}/brain-card")
 async def get_brain_card(user_id: str = Depends(verify_user_owns_path)):
     """
