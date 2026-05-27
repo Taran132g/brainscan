@@ -56,6 +56,7 @@ export default function ProfilePage() {
   const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
   const [userName, setUserName] = useState("");
   const [publicProfile, setPublicProfile] = useState<PublicProfileFields | undefined>(undefined);
+  const [viewerCard, setViewerCard] = useState<BrainCard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
@@ -127,6 +128,21 @@ export default function ProfilePage() {
       });
   }, [userId]);
 
+  // Pull the viewer's own brain card if they're signed in and viewing someone else.
+  // Powers the MatchPanel comparison view.
+  useEffect(() => {
+    if (!user || user.id === userId) {
+      setViewerCard(null);
+      return;
+    }
+    fetch(`${API_BASE_URL}/api/profile/${user.id}/public-card`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.brain_card) setViewerCard(data.brain_card);
+      })
+      .catch(() => setViewerCard(null));
+  }, [user, userId]);
+
   return (
     <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen">
       {/* Nav */}
@@ -189,6 +205,18 @@ export default function ProfilePage() {
           </div>
         ) : (
           <>
+            {/* Compatibility panel — signed-in visitor looking at someone else's card */}
+            {user && user.id !== userId && viewerCard?.founder_signal && brainCard?.founder_signal && (
+              <div className="mb-6">
+                <MatchPanel
+                  hostName={userName || "this founder"}
+                  viewerName={(user.user_metadata?.full_name as string) || "you"}
+                  hostSignal={brainCard.founder_signal}
+                  viewerSignal={viewerCard.founder_signal}
+                />
+              </div>
+            )}
+
             {/* Hero — matches the OG share-card visual */}
             <div className="mb-8">
               <BrainCardHero

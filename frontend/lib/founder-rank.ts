@@ -2,9 +2,14 @@
  * Founder ranking — converts the 0-100 founder_score into a 1-10 rank
  * and a tier label with a banner color scheme.
  *
- * Used both for fake-user generation (lib/fake-users.ts seeds rank/tier
- * directly) and for live users — we compute their rank from brain card
- * signals + profile fields.
+ * Calibration target (tightened 2026-05-27):
+ *   5/10  — genuinely average platform user (early founder, some experience)
+ *   6-7   — solid track record (shipped something, real domain, mid-tier school)
+ *   8-9   — top 10% (verified strong GitHub + emotional stability + market fit)
+ *   10/10 — top 1% (all signals high + elite school OR big-tech OR prior exit)
+ *
+ * Baseline lowered to 45; individual signal weights all reduced so no single
+ * factor can dominate. Elite-school bonus added on top of "has any school".
  */
 
 import type { Tier, Grade } from "./fake-users";
@@ -26,18 +31,6 @@ export function rankFromScore(score: number): number {
   return Math.max(1, Math.min(10, Math.round(score / 10)));
 }
 
-/**
- * Lightweight client-side rank computation for a live user.
- *
- * Mirrors backend/services/founder_score.py weighting but uses only the
- * signals we have client-side today:
- * - Brain card signals (domain_obsession, shipped_before, emotional_stability,
- *   implied_intelligence)
- * - Profile fields when filled in (github username, linkedin url, school,
- *   prior_shipped_product flag — derived from shipped_before for now)
- *
- * Score is capped at 100. Baseline 50.
- */
 type FounderSignal = {
   domain_obsession?: Grade;
   emotional_stability_signal?: Grade;
@@ -56,46 +49,58 @@ type ProfileFields = {
   twitter?: string;
   website?: string;
   gender?: string;
-  // Populated once the user runs the GitHub OAuth flow. Overrides the
-  // soft "has github username" check below — verified data outweighs
-  // self-reported handles.
   github_quality?: Grade;
 };
 
-const GRADED_MAX = { high: 1.0, medium: 0.5, low: 0 } as const;
+const ELITE_SCHOOLS = [
+  "stanford", "mit", "harvard", "caltech", "princeton", "yale",
+  "columbia", "cornell", "dartmouth", "brown", "upenn", "university of pennsylvania",
+  "berkeley", "uc berkeley", "carnegie mellon", "cmu", "oxford", "cambridge",
+];
+
+function isEliteSchool(school: string): boolean {
+  const s = school.toLowerCase();
+  return ELITE_SCHOOLS.some((e) => s.includes(e));
+}
 
 export function computeRank(
   signal: FounderSignal | undefined,
   profile: ProfileFields | undefined
 ): { rank: number; score: number; tier: Tier } {
-  let score = 50;
+  let score = 45; // tightened baseline
 
-  if (signal?.shipped_before) score += 10;
+  // Brain card signals — graded, with both bonuses and penalties.
+  // Max per-signal contribution is now small enough that no single field
+  // can carry a user from average to visionary on its own.
 
-  if (signal?.emotional_stability_signal) {
-    score += 10 * GRADED_MAX[signal.emotional_stability_signal];
-    if (signal.emotional_stability_signal === "low") score -= 10; // explicit penalty
+  if (signal?.shipped_before) score += 5;
+
+  // Emotional stability: high +4, medium 0, low -3 (real penalty for anxious
+  // / reactive writing — PNAS data is unambiguous on this)
+  if (signal?.emotional_stability_signal === "high") score += 4;
+  else if (signal?.emotional_stability_signal === "low") score -= 3;
+
+  // Domain obsession (proxy for founder-market fit): up to +6
+  if (signal?.domain_obsession === "high") score += 6;
+  else if (signal?.domain_obsession === "medium") score += 3;
+  else if (signal?.domain_obsession === "low") score -= 2;
+
+  // Implied intelligence — smallest contributor, just a tiebreaker
+  if (signal?.implied_intelligence === "high") score += 2;
+  else if (signal?.implied_intelligence === "low") score -= 1;
+
+  // GitHub quality — verified-ish (username + public API) is the only
+  // path right now. Sparse profile mildly penalized, strong profile rewarded.
+  if (profile?.github_quality === "high") score += 5;
+  else if (profile?.github_quality === "low") score -= 1;
+
+  // Profile completeness — small bonuses, not score-defining
+  if (profile?.linkedin && profile.linkedin.length > 0) score += 2;
+  if (profile?.school && profile.school.length > 0) {
+    score += 1;
+    if (isEliteSchool(profile.school)) score += 5; // elite school bonus on top
   }
-
-  if (signal?.domain_obsession) {
-    // Domain obsession contributes to founder-market fit (up to 15 pts)
-    score += 15 * GRADED_MAX[signal.domain_obsession];
-  }
-
-  if (signal?.implied_intelligence) {
-    score += 6 * GRADED_MAX[signal.implied_intelligence];
-  }
-
-  // GitHub is required before uploading. Quality is a modifier, not a major
-  // signal — tight ±2.5 range so a thin profile doesn't tank a founder and
-  // a strong one doesn't dominate the score.
-  if (profile?.github_quality === "high") score += 2.5;
-  else if (profile?.github_quality === "low") score -= 2.5;
-  // medium → no change
-
-  if (profile?.linkedin && profile.linkedin.length > 0) score += 6;
-  if (profile?.school && profile.school.length > 0) score += 4;
-  if (profile?.age && parseInt(profile.age) < 25) score += 5;
+  if (profile?.age && parseInt(profile.age) < 25) score += 2;
 
   score = Math.max(0, Math.min(100, Math.round(score)));
   const rank = rankFromScore(score);

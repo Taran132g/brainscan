@@ -244,15 +244,23 @@ def _summarize(user: dict, repos: list[dict]) -> dict:
 
 
 def grade_quality(github_data: dict) -> str:
-    """Map summarized github data → low | medium | high."""
+    """
+    Map summarized github data → low | medium | high.
+
+    Tight thresholds — "high" means clearly above-average builder track record,
+    not just "has GitHub". Calibrated so:
+      4 public repos, 0 stars       → low
+      8 repos, 5+ stars, 3 langs    → medium
+      15+ repos, 30+ stars, 4+ langs → high
+    """
     stats = github_data.get("stats", {}) or {}
     non_fork = stats.get("non_fork_repos", 0)
     stars = stats.get("total_stars", 0)
     langs = stats.get("language_count", 0)
 
-    if non_fork >= 8 and (stars >= 20 or langs >= 4):
+    if non_fork >= 12 and stars >= 30 and langs >= 4:
         return "high"
-    if non_fork >= 3 and (stars >= 1 or langs >= 2):
+    if non_fork >= 6 and (stars >= 5 or langs >= 3):
         return "medium"
     return "low"
 
