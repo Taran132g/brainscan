@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, Filter, MapPin, Sparkles } from "lucide-react";
 import { FounderGlobe } from "@/components/FounderGlobe";
 import { FounderRankBadge } from "@/components/FounderRankBadge";
 import { FAKE_USERS, TIER_INFO, FakeUser } from "@/lib/fake-users";
 import type { Tier } from "@/lib/founder-rank";
+import { fetchRealFounders } from "@/lib/real-users";
+import { API_BASE_URL } from "@/lib/api";
 
 const TIER_ORDER: Tier[] = ["Visionary", "Builder", "Operator", "Explorer", "Newcomer"];
 const MARKETS = ["b2b", "consumer", "infrastructure", "mixed", "unclear"] as const;
@@ -15,9 +17,22 @@ export default function DiscoverPage() {
   const [marketFilter, setMarketFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [highlightId, setHighlightId] = useState<string | undefined>();
+  const [realFounders, setRealFounders] = useState<FakeUser[]>([]);
+
+  useEffect(() => {
+    fetchRealFounders(API_BASE_URL).then(setRealFounders);
+  }, []);
+
+  // Real founders first (so their dots aren't lost in the sea of fakes),
+  // then fakes filling out to ~500 total
+  const allUsers = useMemo<FakeUser[]>(() => {
+    const realIds = new Set(realFounders.map((u) => u.id));
+    const filler = FAKE_USERS.filter((u) => !realIds.has(u.id)).slice(0, Math.max(0, 500 - realFounders.length));
+    return [...realFounders, ...filler];
+  }, [realFounders]);
 
   const filtered = useMemo(() => {
-    return FAKE_USERS.filter((u) => {
+    return allUsers.filter((u) => {
       if (tierFilter !== "all" && u.tier !== tierFilter) return false;
       if (marketFilter !== "all" && u.market_orientation !== marketFilter) return false;
       if (search) {
@@ -31,7 +46,7 @@ export default function DiscoverPage() {
       }
       return true;
     });
-  }, [tierFilter, marketFilter, search]);
+  }, [allUsers, tierFilter, marketFilter, search]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -40,7 +55,7 @@ export default function DiscoverPage() {
           Discover
         </h1>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          Browse {FAKE_USERS.length} founders worldwide. Filter by tier, market, or location.
+          Browse {allUsers.length} founders worldwide. Filter by tier, market, or location.
         </p>
       </div>
 
@@ -106,7 +121,7 @@ export default function DiscoverPage() {
       {/* Result count */}
       <div className="flex items-center gap-2 text-xs" style={{ color: "var(--text-secondary)" }}>
         <Filter size={12} />
-        Showing {filtered.length} of {FAKE_USERS.length} founders
+        Showing {filtered.length} of {allUsers.length} founders
       </div>
 
       {/* User cards */}

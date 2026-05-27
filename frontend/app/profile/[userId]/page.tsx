@@ -7,6 +7,7 @@ import Link from "next/link";
 import { API_BASE_URL } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { BrainCardHero } from "@/components/BrainCardHero";
+import { MatchPanel } from "@/components/MatchPanel";
 
 type FounderSignal = {
   domain_obsession?: "low" | "medium" | "high";

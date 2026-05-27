@@ -136,9 +136,8 @@ def exchange_code(code: str) -> str:
 
 def fetch_user_data(token: str) -> dict:
     """
-    Pull the user profile and their public repos (up to 100, sorted by push date).
-    Returns a normalized dict we'll store in profiles.github_data plus derive
-    a github_quality grade from.
+    OAuth path — pull the authenticated user's profile + repos using their token.
+    Returns a normalized dict matching fetch_user_data_public.
     """
     headers = {
         "Authorization": f"Bearer {token}",
@@ -160,6 +159,39 @@ def fetch_user_data(token: str) -> dict:
                 "visibility": "public",
                 "affiliation": "owner",
             },
+        )
+        r.raise_for_status()
+        repos = r.json()
+
+    return _summarize(user, repos)
+
+
+def fetch_user_data_public(username: str) -> dict:
+    """
+    Public-API path — fetch any user's public profile + repos by username.
+    No auth required; uses GITHUB_TOKEN if set to bump rate limit 60 → 5000/hour.
+
+    Used when OAuth is broken or as a low-friction fallback. Data is
+    "self-reported" — caller should mark verification=false.
+    """
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    server_token = os.getenv("GITHUB_TOKEN")
+    if server_token:
+        headers["Authorization"] = f"Bearer {server_token}"
+
+    with httpx.Client(timeout=20.0, headers=headers) as client:
+        u = client.get(f"{GITHUB_API_BASE}/users/{username}")
+        if u.status_code == 404:
+            raise ValueError(f"GitHub user '{username}' not found")
+        u.raise_for_status()
+        user = u.json()
+
+        r = client.get(
+            f"{GITHUB_API_BASE}/users/{username}/repos",
+            params={"per_page": 100, "sort": "pushed", "direction": "desc", "type": "owner"},
         )
         r.raise_for_status()
         repos = r.json()

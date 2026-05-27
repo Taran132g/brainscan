@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Github, Check, Loader2, X, Star, GitBranch, Code } from "lucide-react";
+import { Github, Check, Loader2, X, Star, GitBranch, Code, Info } from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
-import { supabase } from "@/lib/supabase";
 
 type GitHubStatus = {
   github_connected?: boolean;
@@ -34,10 +33,9 @@ const QUALITY_COLOR: Record<string, string> = {
 export function ConnectGitHub() {
   const params = useSearchParams();
   const [status, setStatus] = useState<GitHubStatus | null>(null);
+  const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [syncing, setSyncing] = useState(false);
-  const syncedRef = useRef(false);
 
   const callbackMsg = (() => {
     if (params.get("github_connected") === "1") return { type: "success" as const, text: "GitHub connected." };
@@ -58,72 +56,32 @@ export function ConnectGitHub() {
 
   useEffect(() => { load(); }, []);
 
-  // After Supabase OAuth completes, we get a session with `provider_token`
-  // briefly. Capture it and forward to the backend to fetch GitHub data.
-  // (Provider tokens aren't persisted by Supabase — we have a small window.)
-  useEffect(() => {
-    const trySync = async (sessionLike: { provider_token?: string | null } | null) => {
-      if (!sessionLike?.provider_token || syncedRef.current) return;
-      syncedRef.current = true;
-      setSyncing(true);
-      setError("");
-      try {
-        const r = await authedFetch(`${API_BASE_URL}/api/github/sync`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ access_token: sessionLike.provider_token }),
-        });
-        if (!r.ok) {
-          const d = await r.json().catch(() => ({}));
-          throw new Error(typeof d.detail === "string" ? d.detail : "Sync failed");
-        }
-        await load();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to sync GitHub data");
-        syncedRef.current = false;
-      } finally {
-        setSyncing(false);
-      }
-    };
-
-    // Check current session on mount (handles the case where we just returned from OAuth)
-    supabase.auth.getSession().then(({ data }) => trySync(data.session));
-
-    // Also listen for auth state changes (USER_UPDATED fires after linkIdentity)
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "USER_UPDATED" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        trySync(session);
-      }
-    });
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
   const connect = async () => {
+    const cleaned = username.trim().replace(/^@/, "").replace(/^https?:\/\/github\.com\//i, "");
+    if (!cleaned) { setError("Enter your GitHub username."); return; }
     setBusy(true);
     setError("");
-    syncedRef.current = false;
     try {
-      // Supabase handles the GitHub OAuth dance via its own callback URL
-      // (configured in Supabase Auth Providers → GitHub). User bounces to
-      // GitHub, approves, comes back here with provider_token in the session.
-      const { error: err } = await supabase.auth.linkIdentity({
-        provider: "github",
-        options: {
-          scopes: "read:user public_repo",
-          redirectTo: window.location.href,
-        },
+      const r = await authedFetch(`${API_BASE_URL}/api/github/lookup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: cleaned }),
       });
-      if (err) throw err;
-      // linkIdentity triggers a full-page redirect to GitHub.
-      // (If it returns without redirecting, something failed silently.)
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(typeof d.detail === "string" ? d.detail : "GitHub lookup failed");
+      }
+      await load();
+      setUsername("");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not start GitHub OAuth.");
+      setError(e instanceof Error ? e.message : "Could not fetch GitHub data.");
+    } finally {
       setBusy(false);
     }
   };
 
   const disconnect = async () => {
-    if (!confirm("Disconnect GitHub? Your founder rank will drop until you reconnect.")) return;
+    if (!confirm("Disconnect GitHub? You'll need to reconnect before uploading.")) return;
     setBusy(true);
     try {
       await authedFetch(`${API_BASE_URL}/api/github/disconnect`, { method: "POST" });
@@ -151,11 +109,11 @@ export function ConnectGitHub() {
             <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
               {connected
                 ? `Connected as ${status?.github_username ?? data?.username ?? ""}`
-                : "Required to upload your vault — we use real GitHub data to grade your founder rank."}
+                : "Required to upload your vault. We pull your public repos for the founder rank."}
             </p>
           </div>
         </div>
-        {connected ? (
+        {connected && (
           <button
             onClick={disconnect}
             disabled={busy}
@@ -164,18 +122,50 @@ export function ConnectGitHub() {
           >
             Disconnect
           </button>
-        ) : (
+        )}
+      </div>
+
+      {!connected && (
+        <div className="flex gap-2">
+          <div
+            className="flex-1 flex items-center gap-2 px-3 py-2 rounded-lg border"
+            style={{ backgroundColor: "var(--background)", borderColor: "var(--border)" }}
+          >
+            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>github.com/</span>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") connect(); }}
+              placeholder="your-handle"
+              autoComplete="off"
+              className="flex-1 bg-transparent text-sm outline-none"
+              style={{ color: "var(--text-primary)" }}
+              disabled={busy}
+            />
+          </div>
           <button
             onClick={connect}
-            disabled={busy || syncing}
+            disabled={busy || !username.trim()}
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            {busy || syncing ? <Loader2 size={13} className="animate-spin" /> : <Github size={13} />}
-            {syncing ? "Fetching repos..." : "Connect GitHub"}
+            {busy ? <Loader2 size={13} className="animate-spin" /> : <Github size={13} />}
+            {busy ? "Fetching..." : "Connect"}
           </button>
-        )}
-      </div>
+        </div>
+      )}
+
+      {!connected && (
+        <div className="flex items-start gap-2 text-[11px] px-3 py-2 rounded-lg"
+          style={{ backgroundColor: "var(--background)", color: "var(--text-secondary)" }}>
+          <Info size={11} style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>
+            Self-reported for now (anyone could type any username). OAuth verification is coming.
+            For now, we trust you to enter your own handle so we can fetch your actual public repos.
+          </span>
+        </div>
+      )}
 
       {callbackMsg && (
         <div
@@ -201,7 +191,7 @@ export function ConnectGitHub() {
         <div className="flex flex-col gap-3 pt-3 border-t" style={{ borderColor: "var(--border)" }}>
           <div className="flex items-center justify-between">
             <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-              Quality grade
+              Quality grade · self-reported
             </span>
             {quality && (
               <span className="text-xs font-semibold uppercase" style={{ color: QUALITY_COLOR[quality] }}>

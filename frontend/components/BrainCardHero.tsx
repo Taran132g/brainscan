@@ -1,7 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { computeRank, TIER_INFO } from "@/lib/founder-rank";
 import type { Tier } from "@/lib/fake-users";
+import { SignalExplainerModal } from "@/components/SignalExplainerModal";
+import type { SignalKey } from "@/lib/signal-research";
 
 type Grade = "low" | "medium" | "high";
 type FounderSignal = {
@@ -43,14 +46,21 @@ function initialsOf(name: string): string {
     .toUpperCase();
 }
 
-function pillsFrom(s: FounderSignal | undefined): { label: string; value: string }[] {
+type PillSpec = { key: SignalKey; label: string; value: string };
+
+function pillsFrom(s: FounderSignal | undefined): PillSpec[] {
   if (!s) return [];
-  const out: { label: string; value: string }[] = [];
-  if (s.domain_obsession) out.push({ label: "Domain obsession", value: s.domain_obsession });
-  if (s.shipped_before !== undefined) out.push({ label: "Shipped before", value: s.shipped_before ? "yes" : "no" });
-  if (s.market_orientation) out.push({ label: "Market", value: s.market_orientation });
-  if (s.emotional_stability_signal) out.push({ label: "Emotional stability", value: s.emotional_stability_signal });
-  if (s.implied_intelligence) out.push({ label: "Implied intelligence", value: s.implied_intelligence });
+  const out: PillSpec[] = [];
+  if (s.domain_obsession)
+    out.push({ key: "domain_obsession", label: "Domain obsession", value: s.domain_obsession });
+  if (s.shipped_before !== undefined)
+    out.push({ key: "shipped_before", label: "Shipped before", value: s.shipped_before ? "yes" : "no" });
+  if (s.market_orientation)
+    out.push({ key: "market_orientation", label: "Market", value: s.market_orientation });
+  if (s.emotional_stability_signal)
+    out.push({ key: "emotional_stability_signal", label: "Emotional stability", value: s.emotional_stability_signal });
+  if (s.implied_intelligence)
+    out.push({ key: "implied_intelligence", label: "Implied intelligence", value: s.implied_intelligence });
   return out;
 }
 
@@ -68,6 +78,8 @@ export function BrainCardHero({
   const initials = initialsOf(name) || "?";
   const pills = pillsFrom(founderSignal);
   const compact = variant === "compact";
+
+  const [explain, setExplain] = useState<{ key: SignalKey; value: string } | null>(null);
 
   return (
     <div
@@ -138,23 +150,27 @@ export function BrainCardHero({
         </div>
       </div>
 
-      {/* Signal pills */}
+      {/* Signal pills — tappable, opens research explainer */}
       {pills.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
           {pills.map((p) => (
-            <div
+            <button
               key={p.label}
-              className="flex items-center gap-2 rounded-full border"
+              type="button"
+              onClick={() => setExplain({ key: p.key, value: p.value })}
+              className="flex items-center gap-2 rounded-full border transition-colors cursor-pointer hover:opacity-90"
               style={{
                 padding: compact ? "6px 12px" : "8px 16px",
                 borderColor: "rgba(148,163,184,0.35)",
                 backgroundColor: "rgba(255,255,255,0.04)",
                 fontSize: compact ? 12 : 14,
+                color: "white",
               }}
+              title={`Learn what "${p.label}" means`}
             >
               <span style={{ color: "#94a3b8" }}>{p.label}:</span>
               <span className="font-semibold">{p.value}</span>
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -171,6 +187,12 @@ export function BrainCardHero({
           </span>
         </div>
       )}
+
+      <SignalExplainerModal
+        signalKey={explain?.key ?? null}
+        value={explain?.value ?? null}
+        onClose={() => setExplain(null)}
+      />
     </div>
   );
 }

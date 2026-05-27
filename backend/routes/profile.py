@@ -9,6 +9,40 @@ from services.paywall import FULL_TIER_FREE_UPLOADS_PER_CYCLE
 router = APIRouter()
 
 
+@router.get("/discover/founders")
+async def list_public_founders(limit: int = 200):
+    """
+    Public list of profiles that have a cached brain card. Powers the
+    discovery globe. Returns the minimal fields needed to render a dot +
+    open the profile.
+    """
+    supabase = get_client()
+    res = (
+        supabase.table("profiles")
+        .select("id, full_name, city, brain_confidence, founder_signal, school, age, linkedin")
+        .not_.is_("brain_card", "null")
+        .limit(min(max(limit, 1), 500))
+        .execute()
+    )
+    rows = res.data or []
+    return {
+        "count": len(rows),
+        "founders": [
+            {
+                "id": r.get("id"),
+                "name": r.get("full_name") or "Founder",
+                "city": r.get("city") or "",
+                "brain_confidence": r.get("brain_confidence"),
+                "founder_signal": r.get("founder_signal") or {},
+                "school": r.get("school"),
+                "age": r.get("age"),
+                "linkedin": r.get("linkedin"),
+            }
+            for r in rows
+        ],
+    }
+
+
 @router.get("/profile/{user_id}/public-card")
 async def get_public_brain_card(user_id: str):
     """

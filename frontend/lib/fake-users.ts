@@ -47,7 +47,7 @@ function jitter(value: number, amount: number): number { return value + (rand() 
 
 // ---------------- Tech hubs (weighted) ----------------
 // More users come from bigger hubs. Weights drive the distribution.
-const HUBS: { city: string; country: string; lat: number; lng: number; weight: number }[] = [
+export const HUBS: { city: string; country: string; lat: number; lng: number; weight: number }[] = [
   { city: "San Francisco", country: "USA", lat: 37.7749, lng: -122.4194, weight: 60 },
   { city: "New York", country: "USA", lat: 40.7128, lng: -74.006, weight: 55 },
   { city: "London", country: "UK", lat: 51.5074, lng: -0.1278, weight: 45 },

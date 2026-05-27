@@ -10,6 +10,7 @@ from services.github_service import (
     authorize_url,
     exchange_code,
     fetch_user_data,
+    fetch_user_data_public,
     grade_quality,
     persist_to_profile,
     disconnect,
@@ -23,6 +24,50 @@ router = APIRouter()
 
 class GitHubSyncRequest(BaseModel):
     access_token: str
+
+
+class GitHubLookupRequest(BaseModel):
+    username: str
+
+
+@router.post("/github/lookup")
+async def github_lookup(
+    body: GitHubLookupRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Username-only flow — fetches the user's public GitHub data without OAuth.
+    Used as the primary connection path while OAuth is broken on certain
+    accounts. Data is self-reported (anyone can claim any username) so the
+    UI flags it as unverified.
+
+    The shape of the persisted github_data matches the OAuth flow exactly,
+    so downstream code (brain card prompt, founder rank, profile UI) works
+    identically.
+    """
+    username = (body.username or "").strip().lstrip("@")
+    if not username or len(username) > 39 or "/" in username:
+        raise HTTPException(status_code=400, detail="Invalid GitHub username")
+
+    try:
+        data = fetch_user_data_public(username)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=502, detail=f"GitHub API error: {e.response.status_code}")
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"GitHub network error: {e}")
+
+    quality = grade_quality(data)
+    # No access_token — pass None. persist_to_profile clears stale token if any.
+    persist_to_profile(user_id, "", data, quality)
+
+    return JSONResponse({
+        "ok": True,
+        "username": data.get("username"),
+        "quality": quality,
+        "verified": False,
+    })
 
 
 @router.post("/github/sync")
