@@ -89,10 +89,12 @@ export function computeRank(
   if (signal?.implied_intelligence === "high") score += 2;
   else if (signal?.implied_intelligence === "low") score -= 1;
 
-  // GitHub quality — verified-ish (username + public API) is the only
-  // path right now. Sparse profile mildly penalized, strong profile rewarded.
+  // GitHub quality — bonus only, no penalty. Non-technical co-founders
+  // (designers, operators, sales) naturally have thin GitHubs but make
+  // great matches for technical builders; penalizing them would skew the
+  // platform toward engineers only.
   if (profile?.github_quality === "high") score += 5;
-  else if (profile?.github_quality === "low") score -= 1;
+  // medium and low: no adjustment
 
   // Profile completeness — small bonuses, not score-defining
   if (profile?.linkedin && profile.linkedin.length > 0) score += 2;

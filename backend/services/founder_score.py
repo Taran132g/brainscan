@@ -32,9 +32,11 @@ SIGNAL_WEIGHTS = {
     "implied_intelligence_high": 2,
     "implied_intelligence_low": -1,
 
-    # GitHub — tight asymmetric range. Required, so it's a modifier.
+    # GitHub — high rewarded, low neutral. We don't want to penalize
+    # non-technical co-founders (designers, operators, sales) whose GitHub
+    # is naturally thin even though they're great matches for technical builders.
     "github_quality_high": 5,
-    "github_quality_low": -1,
+    "github_quality_low": 0,
 
     # Profile completeness — small bonuses
     "linkedin_presence": 2,
@@ -131,11 +133,9 @@ def compute_founder_score(
     elif implied_intelligence == "low":
         add("Implied intelligence (low)", SIGNAL_WEIGHTS["implied_intelligence_low"])
 
-    # GitHub
+    # GitHub — bonus only, no penalty for sparse/non-technical profiles
     if github_quality == "high":
         add("GitHub (high)", SIGNAL_WEIGHTS["github_quality_high"])
-    elif github_quality == "low":
-        add("GitHub (low)", SIGNAL_WEIGHTS["github_quality_low"])
 
     # Profile completeness
     if linkedin_present:
