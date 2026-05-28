@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from services.embedder import embed_chunks
+from services.embedder import embed_query
 from services.vector_store import query_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path
@@ -127,17 +127,9 @@ async def get_brain_card(user_id: str = Depends(verify_user_owns_path)):
     Useful if the user updates their vault or wants a fresh card.
     """
     # Use a broad query to sample diverse chunks from their vault
-    broad_queries = [
-        "who I am background experience skills",
-        "what I am building projects ideas startup",
-        "values philosophy risk long term vision",
-        "how I think mental models frameworks",
-    ]
+    broad_query = "who I am background experience skills what I am building values how I think"
 
-    # Embed one of the broad queries and retrieve a wide sample
-    sample_chunk = [{"title": "", "heading": "", "text": broad_queries[0]}]
-    embedded = embed_chunks(sample_chunk)
-    query_vector = embedded[0]["embedding"]
+    query_vector = embed_query(broad_query)
 
     chunks = query_namespace(user_id, query_vector, top_k=40)
 

@@ -2,6 +2,7 @@ import os
 import hashlib
 from typing import List
 from pinecone import Pinecone, ServerlessSpec
+from services.embedder import EMBED_DIM
 
 _pc = None
 _index = None
@@ -13,13 +14,15 @@ def _get_index():
         return _index
 
     _pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
-    index_name = os.getenv("PINECONE_INDEX_NAME", "finding-founders")
+    # New index name so the dimension change (384 → 1024) auto-provisions a
+    # fresh index instead of colliding with the old MiniLM one.
+    index_name = os.getenv("PINECONE_INDEX_NAME", "finding-founders-v2")
 
     existing = [i.name for i in _pc.list_indexes()]
     if index_name not in existing:
         _pc.create_index(
             name=index_name,
-            dimension=384,  # all-MiniLM-L6-v2
+            dimension=EMBED_DIM,  # multilingual-e5-large (Pinecone hosted)
             metric="cosine",
             spec=ServerlessSpec(cloud="aws", region="us-east-1"),
         )

@@ -61,13 +61,13 @@ pip install -r requirements.txt
 #    ANTHROPIC_API_KEY=...
 #    OPENAI_API_KEY=...  (if used)
 #    STRIPE_SECRET_KEY=...
-#    STRIPE_WEBHOOK_SECRET=...
+#    STRIPE_WEBHOOK_SECRET=...        # from Stripe dashboard webhook (Step 6 below)
 #    STRIPE_PRICE_BRAIN_CARD=...
 #    FRONTEND_URL=https://findingfounders.app
+#    BACKEND_URL=https://api.findingfounders.app   # REQUIRED for GitHub OAuth callback
 nano .env && chmod 600 .env
 
-# 4. Update CORS in main.py to allow the new origin
-# (already need: allow_origins=["https://findingfounders.app"])
+# 4. CORS already updated in main.py (allow_origins includes https://findingfounders.app)
 
 # 5. systemd unit
 sudo tee /etc/systemd/system/findingfounders-api.service > /dev/null << 'EOF'
@@ -144,6 +144,37 @@ dig +short A api.findingfounders.app
 Then run `certbot` on Oracle (Step 3.8) to issue SSL.
 
 ---
+
+## Step 4.5 — External dashboard config (CRITICAL — auth & payments break silently without these)
+
+These can't be done in code. Each is a hard blocker for the feature it gates.
+
+**Supabase** (dashboard → Authentication → URL Configuration):
+- Set **Site URL** → `https://findingfounders.app`
+- Add to **Redirect URLs** allowlist → `https://findingfounders.app/auth/callback` and `https://findingfounders.app/**`
+- Without this: Google sign-in + email OTP redirect to a blocked URL → login dead-ends.
+
+**Google OAuth** (already wired through Supabase — no separate change needed as long as Supabase Site URL is set).
+
+**GitHub OAuth App** (github.com → Settings → Developer settings → OAuth Apps → your app):
+- Add **Authorization callback URL** → `https://api.findingfounders.app/api/github/callback`
+- Without this: "Connect GitHub" on the profile form fails with redirect_uri mismatch.
+
+**Stripe** (dashboard → Developers → Webhooks → Add endpoint):
+- Endpoint URL → `https://api.findingfounders.app/api/payment/webhook`
+- Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
+- Copy the **Signing secret** → set as `STRIPE_WEBHOOK_SECRET` in Oracle `.env`, then `sudo systemctl restart findingfounders-api`
+- Without this: payments succeed at Stripe but the tier/credit never updates in your DB.
+- Also switch Stripe keys from test → live mode when ready (`STRIPE_SECRET_KEY` + `STRIPE_PRICE_BRAIN_CARD` live IDs).
+
+---
+
+## Step 4.6 — Embeddings note (already handled in code)
+
+Embeddings moved from local `sentence-transformers`/torch (heavy, would OOM the 1 GB box) to **Pinecone hosted inference** (`multilingual-e5-large`, 1024-dim). This means:
+- The backend no longer installs torch — `requirements.txt` is light (~150 MB total install).
+- The Pinecone index name changed to `finding-founders-v2` (auto-provisions at 1024-dim on first call). The old 384-dim `finding-founders` index is left untouched and unused.
+- **Existing vault data must be re-embedded:** after deploy, each existing user (just you right now) re-uploads their vault once to populate the new index. Cached brain cards in the `profiles` table still render fine in the meantime — only a fresh re-scan needs the new index.
 
 ## Step 5 — Smoke tests
 
