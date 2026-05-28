@@ -63,7 +63,10 @@ export default function ProfilePage() {
 
   const handleShare = async () => {
     if (typeof window === "undefined") return;
-    const url = `${window.location.origin}/profile/${userId}`;
+    // Prefer the configured canonical app URL so dev shares don't leak localhost links.
+    const baseUrl =
+      (process.env.NEXT_PUBLIC_APP_URL as string | undefined) || window.location.origin;
+    const url = `${baseUrl}/profile/${userId}`;
     const title = `${userName || "My"} FindingFounders Brain Card`;
 
     // Only use the OS share sheet on touch devices — desktop Chrome's

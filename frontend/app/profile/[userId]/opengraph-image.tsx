@@ -190,7 +190,9 @@ export default async function Image({ params }: { params: Promise<{ userId: stri
 
         {/* Footer */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", fontSize: 22, color: "#94a3b8" }}>
-          <div style={{ display: "flex" }}>findingfounders.com</div>
+          <div style={{ display: "flex" }}>
+            {(process.env.NEXT_PUBLIC_APP_URL || "https://findingfounders.app").replace(/^https?:\/\//, "")}
+          </div>
           <div style={{ display: "flex" }}>Match by how you think</div>
         </div>
       </div>

@@ -18,6 +18,7 @@ from services.github_service import (
     verify_state,
 )
 from services.github_service import _frontend_url  # for callback redirect
+from services.db import compute_and_persist_rank
 
 router = APIRouter()
 
@@ -62,11 +63,15 @@ async def github_lookup(
     # No access_token — pass None. persist_to_profile clears stale token if any.
     persist_to_profile(user_id, "", data, quality)
 
+    # GitHub quality changed → recompute founder rank
+    rank_result = compute_and_persist_rank(user_id)
+
     return JSONResponse({
         "ok": True,
         "username": data.get("username"),
         "quality": quality,
         "verified": False,
+        "rank": rank_result,
     })
 
 

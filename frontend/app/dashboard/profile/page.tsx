@@ -5,6 +5,7 @@ import { Save, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { ConnectGitHub } from "@/components/ConnectGitHub";
+import { ConnectLinkedIn } from "@/components/ConnectLinkedIn";
 import { ScanStats } from "@/components/ScanStats";
 
 type ProfileFields = {
@@ -87,6 +88,8 @@ export default function ProfilePage() {
         <Suspense fallback={null}>
           <ConnectGitHub />
         </Suspense>
+
+        <ConnectLinkedIn />
 
         <FieldGroup title="Required">
           <Field label="Full name" required>

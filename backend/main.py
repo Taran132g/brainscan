@@ -9,12 +9,17 @@ from routes.auth import router as auth_router
 from routes.match import router as match_router
 from routes.payment import router as payment_router
 from routes.github import router as github_router
+from routes.linkedin import router as linkedin_router
 
 app = FastAPI(title="FindingFounders API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://findingfounders.app",
+        "https://www.findingfounders.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -26,6 +31,7 @@ app.include_router(auth_router, prefix="/api", tags=["auth"])
 app.include_router(match_router, prefix="/api", tags=["match"])
 app.include_router(payment_router, prefix="/api", tags=["payment"])
 app.include_router(github_router, prefix="/api", tags=["github"])
+app.include_router(linkedin_router, prefix="/api", tags=["linkedin"])
 
 
 @app.get("/health")

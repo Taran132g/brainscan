@@ -8,7 +8,7 @@ from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path
-from services.db import record_vault_upload, upsert_profile_snapshot, get_client
+from services.db import record_vault_upload, upsert_profile_snapshot, get_client, compute_and_persist_rank
 from services.paywall import check_upload_allowed
 
 router = APIRouter()
@@ -118,6 +118,9 @@ async def upload_vault(
         linkedin_url=linkedin_url,
     )
 
+    # Server-side rank — authoritative, drives Discover / matching / public card
+    rank_result = compute_and_persist_rank(user_id)
+
     return JSONResponse({
         "status": "success",
         "user_id": user_id,
@@ -129,4 +132,5 @@ async def upload_vault(
         },
         "brain_card": brain_card,
         "payment_info": payment_info,
+        "rank": rank_result,
     })

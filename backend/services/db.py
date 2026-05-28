@@ -90,3 +90,69 @@ def upsert_profile_snapshot(
         get_client().table("profiles").upsert(payload, on_conflict="id").execute()
     except Exception as e:
         print(f"[db] upsert_profile_snapshot failed: {e}")
+
+
+def compute_and_persist_rank(user_id: str) -> dict:
+    """
+    Compute the server-side founder rank for a user using current profile data
+    + latest brain card signals, then persist score / rank / tier to profiles.
+
+    Authoritative — frontend client-side computation is a fallback for users
+    who haven't completed enough signals yet. This is what powers Discover,
+    matching, and the public profile card.
+
+    Soft-fails on any DB hiccup so callers (upload, github_lookup,
+    linkedin_lookup) never break on a rank computation issue.
+
+    Returns the computed result dict (or empty dict on failure).
+    """
+    try:
+        from services.founder_score import compute_founder_score
+        supabase = get_client()
+        res = (
+            supabase.table("profiles")
+            .select(
+                "school, linkedin, age, github_quality, linkedin_quality, "
+                "founder_signal, big_tech_employer, gender"
+            )
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+        )
+        profile = (res.data or [{}])[0]
+        signal = profile.get("founder_signal") or {}
+
+        # Defensive int parse — `age` is stored as int but may come back as string
+        age_val = profile.get("age")
+        try:
+            age_int = int(age_val) if age_val is not None else None
+        except (TypeError, ValueError):
+            age_int = None
+
+        result = compute_founder_score(
+            domain_obsession=signal.get("domain_obsession"),
+            emotional_stability=signal.get("emotional_stability_signal"),
+            shipped_before=bool(signal.get("shipped_before")),
+            implied_intelligence=signal.get("implied_intelligence"),
+            school=profile.get("school"),
+            linkedin_present=bool(profile.get("linkedin")),
+            age=age_int,
+            github_quality=profile.get("github_quality"),
+            linkedin_quality=profile.get("linkedin_quality"),
+            # The fields below default off until we have OAuth / parsed data.
+            # `big_tech_employer` is set by the LinkedIn lookup route when the
+            # latest_company matches the big-tech list.
+            big_tech_employer=bool(profile.get("big_tech_employer")),
+            female_founder=(profile.get("gender") or "").lower().strip() in ("female", "woman", "f"),
+        )
+
+        supabase.table("profiles").update({
+            "founder_score": result["score"],
+            "founder_rank": result["rank"],
+            "founder_tier": result["tier"],
+        }).eq("id", user_id).execute()
+
+        return result
+    except Exception as e:
+        print(f"[db] compute_and_persist_rank failed: {e}")
+        return {}
