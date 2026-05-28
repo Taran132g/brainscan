@@ -10,6 +10,7 @@ from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path
 from services.db import record_vault_upload, upsert_profile_snapshot, get_client, compute_and_persist_rank
 from services.paywall import check_upload_allowed
+from services.match_service import upsert_match_vectors
 
 router = APIRouter()
 
@@ -120,6 +121,31 @@ async def upload_vault(
 
     # Server-side rank — authoritative, drives Discover / matching / public card
     rank_result = compute_and_persist_rank(user_id)
+
+    # Match vectors — embed brain card sections into one profile vector + one
+    # needs vector per user (Pinecone namespaces: match_profiles, match_needs).
+    # Refresh on every upload so the match feed reflects the latest thinking.
+    match_profile_meta = {
+        "full_name": profile_row.get("full_name") if isinstance(profile_row, dict) else None,
+        "city": None,
+        "school": None,
+        "founder_tier": (rank_result or {}).get("tier"),
+        "founder_rank": (rank_result or {}).get("rank"),
+    }
+    # Pull the fields we need for match metadata
+    try:
+        meta_res = get_client().table("profiles").select(
+            "full_name, city, school"
+        ).eq("id", user_id).limit(1).execute()
+        if meta_res.data:
+            row = meta_res.data[0]
+            match_profile_meta["full_name"] = row.get("full_name") or match_profile_meta["full_name"]
+            match_profile_meta["city"] = row.get("city")
+            match_profile_meta["school"] = row.get("school")
+    except Exception as e:
+        print(f"[upload] match metadata read failed: {e}")
+
+    upsert_match_vectors(user_id, brain_card, match_profile_meta)
 
     return JSONResponse({
         "status": "success",
