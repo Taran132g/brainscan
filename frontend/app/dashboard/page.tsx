@@ -17,20 +17,46 @@ type BrainCard = {
   founder_signal?: Record<string, string | boolean>;
 };
 
+type ServerRank = { score?: number | null; rank?: number | null; tier?: string | null };
+
 export default function DashboardOverview() {
   const { user } = useAuth();
   const [brainCard, setBrainCard] = useState<BrainCard | null>(null);
   const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
   const [githubQuality, setGithubQuality] = useState<"low" | "medium" | "high" | undefined>();
+  const [serverRank, setServerRank] = useState<ServerRank | null>(null);
+  const [serverProfile, setServerProfile] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     if (!user) return;
+
+    // 1) Prefer session-cached brain card (fresh from a just-completed upload)
     const card = sessionStorage.getItem(`braincard_${user.id}`);
     const quality = sessionStorage.getItem(`vault_quality_${user.id}`);
     if (card) setBrainCard(JSON.parse(card));
     if (quality) setVaultQuality(JSON.parse(quality));
 
-    // Pull verified GitHub grade if the user has connected
+    // 2) Always try the server snapshot — picks up any cross-session changes
+    //    (LinkedIn / GitHub recompute, refreshed page, different browser, etc.)
+    fetch(`${API_BASE_URL}/api/profile/${user.id}/public-card`)
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data) return;
+        if (!card && data.brain_card) {
+          setBrainCard(data.brain_card);
+        }
+        if (!quality && data.brain_confidence != null) {
+          setVaultQuality({
+            score: data.brain_confidence,
+            stats: { note_count: 0, total_words: 0, avg_words_per_note: 0 },
+          });
+        }
+        if (data.rank) setServerRank(data.rank);
+        if (data.profile) setServerProfile(data.profile);
+      })
+      .catch(() => { /* nothing in DB yet — empty state is fine */ });
+
+    // 3) GitHub grade fallback for users coming straight from /upload
     authedFetch(`${API_BASE_URL}/api/github/status`)
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
@@ -44,9 +70,15 @@ export default function DashboardOverview() {
   const firstName = displayName.split(" ")[0] || "there";
   const hasBrainCard = !!brainCard;
 
+  // Prefer server-side rank (authoritative). Falls back to client compute
+  // inside BrainCardHero when serverRank is null.
   const heroProfile = {
     ...(user?.user_metadata as Record<string, unknown>),
+    ...(serverProfile ?? {}),
     ...(githubQuality ? { github_quality: githubQuality } : {}),
+    ...(serverRank?.rank
+      ? { server_rank: serverRank.rank, server_tier: serverRank.tier, server_score: serverRank.score }
+      : {}),
   } as Parameters<typeof BrainCardHero>[0]["profile"];
 
   return (

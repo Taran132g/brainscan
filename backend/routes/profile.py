@@ -53,7 +53,12 @@ async def get_public_brain_card(user_id: str):
     supabase = get_client()
     res = (
         supabase.table("profiles")
-        .select("id, full_name, brain_card, founder_signal, brain_confidence, github, linkedin, school, age")
+        .select(
+            "id, full_name, brain_card, founder_signal, brain_confidence, "
+            "github, linkedin, school, age, "
+            "founder_score, founder_rank, founder_tier, "
+            "github_quality, linkedin_quality, big_tech_employer"
+        )
         .eq("id", user_id)
         .limit(1)
         .execute()
@@ -76,7 +81,15 @@ async def get_public_brain_card(user_id: str):
             "linkedin": row.get("linkedin"),
             "school": row.get("school"),
             "age": row.get("age"),
+            "github_quality": row.get("github_quality"),
+            "linkedin_quality": row.get("linkedin_quality"),
+            "big_tech_employer": row.get("big_tech_employer"),
         },
+        "rank": {
+            "score": row.get("founder_score"),
+            "rank": row.get("founder_rank"),
+            "tier": row.get("founder_tier"),
+        } if row.get("founder_rank") else None,
     }
 
 
