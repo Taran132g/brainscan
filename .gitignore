@@ -67,3 +67,4 @@ npm-debug.log*
 # ---------- ML / Pinecone cache ----------
 *.pkl
 *.bin
+.vercel
