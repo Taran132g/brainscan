@@ -20,6 +20,9 @@ app.add_middleware(
         "https://findingfounders.app",
         "https://www.findingfounders.app",
     ],
+    # Vercel deploys (preview + production *.vercel.app) — covers the live URL
+    # before the custom domain is attached.
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
