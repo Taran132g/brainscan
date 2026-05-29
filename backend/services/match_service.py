@@ -203,6 +203,41 @@ def upsert_match_vectors(
         return False
 
 
+def update_match_location_metadata(user_id: str, profile_meta: dict) -> bool:
+    """
+    Patch the city/coords/name on a user's existing match vectors WITHOUT
+    re-embedding. Called when the profile is edited so the matching layer (and
+    everyone else's "nearest" sort) reflects the new city immediately.
+
+    No-ops (returns False) if the user has no match vectors yet — they'll get
+    full metadata the next time they upload.
+    """
+    coords = _coords_for(profile_meta.get("city") or "")
+    set_meta: dict = {}
+    if profile_meta.get("city"):
+        set_meta["city"] = profile_meta["city"]
+    if profile_meta.get("full_name"):
+        set_meta["name"] = profile_meta["full_name"]
+    if profile_meta.get("school"):
+        set_meta["school"] = profile_meta["school"]
+    if coords:
+        set_meta["lat"] = float(coords[0])
+        set_meta["lng"] = float(coords[1])
+
+    if not set_meta:
+        return False
+
+    index = _get_index()
+    ok = False
+    for ns in (PROFILE_NAMESPACE, NEEDS_NAMESPACE):
+        try:
+            index.update(id=user_id, set_metadata=set_meta, namespace=ns)
+            ok = True
+        except Exception as e:
+            print(f"[match] update_match_location_metadata ({ns}) failed: {e}")
+    return ok
+
+
 def delete_match_vectors(user_id: str) -> None:
     """Remove a user from the matching pool (opt-out / account deletion)."""
     index = _get_index()

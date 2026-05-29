@@ -1,12 +1,38 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Body
 from services.embedder import embed_query
 from services.vector_store import query_namespace
 from services.brain_card import generate_brain_card
-from services.auth import verify_user_owns_path
-from services.db import get_client
+from services.auth import verify_user_owns_path, get_current_user_id
+from services.db import get_client, update_profile_fields
+from services.match_service import update_match_location_metadata, _coords_for
 from services.paywall import FULL_TIER_FREE_UPLOADS_PER_CYCLE
 
 router = APIRouter()
+
+
+@router.put("/profile/me")
+async def update_my_profile(
+    fields: dict = Body(...),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Persist user-editable profile fields to the `profiles` table and refresh the
+    user's match-vector location metadata. This is what makes the city typed into
+    the profile form actually drive the "nearest" match sort — previously the form
+    only wrote to auth user_metadata, which the matching layer never reads.
+    """
+    written = update_profile_fields(user_id, fields)
+    update_match_location_metadata(user_id, {
+        "city": written.get("city"),
+        "full_name": written.get("full_name"),
+        "school": written.get("school"),
+    })
+    coords = _coords_for(written.get("city") or "")
+    return {
+        "ok": True,
+        "city": written.get("city"),
+        "geocoded": coords is not None,
+    }
 
 
 @router.get("/discover/founders")

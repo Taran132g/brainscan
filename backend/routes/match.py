@@ -5,6 +5,7 @@ from fastapi.responses import JSONResponse
 
 from services.auth import get_current_user_id
 from services.db import get_client
+from services.connections import set_decision, list_connections
 from services.match_service import (
     find_matches,
     delete_match_vectors,
@@ -87,3 +88,39 @@ async def remove_from_matching(user_id: str = Depends(get_current_user_id)):
     """Opt out of the matching pool. Their vault stays — only the match vectors are removed."""
     delete_match_vectors(user_id)
     return JSONResponse({"ok": True})
+
+
+# ---------- Hinge-style opt-in connections ----------
+
+@router.get("/match/connections")
+async def get_connections(user_id: str = Depends(get_current_user_id)):
+    """
+    Every match record the user is part of, with the other founder's basic
+    profile and a derived status (connected / pending_outgoing /
+    pending_incoming / passed). Powers the Connections page.
+    """
+    return JSONResponse({"connections": list_connections(user_id)})
+
+
+@router.post("/match/{other_user_id}/connect")
+async def connect(other_user_id: str, user_id: str = Depends(get_current_user_id)):
+    """
+    Express interest in / accept a match. Creates the canonical match row if
+    needed and marks the caller's side accepted. If both sides have accepted,
+    messaging unlocks. Seeded demo founders are auto-accepted.
+    """
+    try:
+        result = set_decision(user_id, other_user_id, accept=True)
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    return JSONResponse(result)
+
+
+@router.post("/match/{other_user_id}/pass")
+async def pass_match(other_user_id: str, user_id: str = Depends(get_current_user_id)):
+    """Decline a match. Marks the caller's side as declined."""
+    try:
+        result = set_decision(user_id, other_user_id, accept=False)
+    except ValueError as e:
+        return JSONResponse({"detail": str(e)}, status_code=400)
+    return JSONResponse(result)

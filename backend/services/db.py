@@ -92,6 +92,39 @@ def upsert_profile_snapshot(
         print(f"[db] upsert_profile_snapshot failed: {e}")
 
 
+PROFILE_EDITABLE_FIELDS = {
+    "full_name", "age", "city", "willing_to_relocate", "work_authorization",
+    "school", "github", "linkedin", "twitter", "website",
+    "gender", "race", "languages",
+}
+
+
+def update_profile_fields(user_id: str, fields: dict) -> dict:
+    """
+    Write user-editable profile fields to the `profiles` table. This is what
+    keeps `profiles.city` (read by the matching layer) in sync with the city
+    the user types into their profile form — the form previously only wrote to
+    auth user_metadata, so the matching layer never saw it.
+
+    Returns the cleaned payload that was written.
+    """
+    clean: dict = {"id": user_id}
+    for k, v in (fields or {}).items():
+        if k not in PROFILE_EDITABLE_FIELDS:
+            continue
+        if k == "age":
+            try:
+                clean[k] = int(v) if v not in (None, "") else None
+            except (TypeError, ValueError):
+                clean[k] = None
+        else:
+            clean[k] = (v.strip() if isinstance(v, str) else v) or None
+    # Drop the willing_to_relocate / work_authorization empties so we don't
+    # violate the CHECK constraints with "" — None is allowed, "" is not.
+    get_client().table("profiles").upsert(clean, on_conflict="id").execute()
+    return clean
+
+
 def compute_and_persist_rank(user_id: str) -> dict:
     """
     Compute the server-side founder rank for a user using current profile data
