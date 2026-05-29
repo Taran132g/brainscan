@@ -2,7 +2,8 @@
 Paywall logic for vault uploads.
 
 Pricing rules (from locked business decisions):
-  free          — never paid: one $0.99 brain card unlocks the product
+  free          — first brain card is FREE (one per account). Every subsequent
+                  upload costs $0.99 (or upgrade for matching + monthly quota).
   brain_card    — bought $0.99 one-time. Each subsequent upload costs $0.99.
   full          — $3.99/month. Two free uploads per month, $0.99 each extra.
 
@@ -35,6 +36,18 @@ def _profile(user_id: str) -> dict:
         .execute()
     )
     return (res.data or [{}])[0]
+
+
+def _upload_count(user_id: str) -> int:
+    """Lifetime count of successful vault uploads for this user."""
+    res = (
+        get_client()
+        .table("vault_uploads")
+        .select("id", count="exact")
+        .eq("user_id", user_id)
+        .execute()
+    )
+    return res.count or 0
 
 
 def _consume_credit(user_id: str) -> bool:
@@ -96,12 +109,18 @@ def check_upload_allowed(user_id: str) -> dict:
         return {"allowed": True, "method": "credit"}
 
     if tier == "free":
+        # Everyone's first brain card is on the house — no payment, no credit.
+        # This is the top-of-funnel hook: let people see their own brain card
+        # once, then charge for re-scans / matching.
+        if _upload_count(user_id) == 0:
+            return {"allowed": True, "method": "first_free"}
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
                 "code": "payment_required",
-                "message": "Buy the brain card ($0.99) to upload your first vault.",
-                "required_product": "brain_card",
+                "message": "You've used your free brain card. Buy another scan for $0.99, or go Full for matching + a monthly quota.",
+                "required_product": "extra_upload",
+                "alt_product": "full_membership",
             },
         )
 
