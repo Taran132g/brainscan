@@ -10,6 +10,8 @@ from services.match_service import (
     find_matches,
     delete_match_vectors,
     filter_and_sort,
+    pairwise_mutual,
+    compatibility_score,
     _coords_for,
 )
 
@@ -41,25 +43,28 @@ async def get_my_matches(
     Filters compose multiplicatively with the sort. We over-fetch by 5× internally
     so filters that narrow the pool still return a useful number of matches.
     """
-    # Over-fetch to give filters something to work with
-    over_fetch = min(top_k * 5, 50)
-    matches = find_matches(user_id, top_k=over_fetch)
-
-    # Look up the requesting user's city → coords once for nearest sort
+    # Look up the requesting user's city (nearest sort) + founder signal
+    # (compatibility scoring) in one read.
     user_coords = None
+    viewer_signal = None
     try:
         res = (
             get_client()
             .table("profiles")
-            .select("city")
+            .select("city, founder_signal")
             .eq("id", user_id)
             .limit(1)
             .execute()
         )
-        city = (res.data or [{}])[0].get("city")
-        user_coords = _coords_for(city or "")
+        row = (res.data or [{}])[0]
+        user_coords = _coords_for(row.get("city") or "")
+        viewer_signal = row.get("founder_signal")
     except Exception:
         user_coords = None
+
+    # Over-fetch to give filters something to work with
+    over_fetch = min(top_k * 5, 50)
+    matches = find_matches(user_id, top_k=over_fetch, viewer_signal=viewer_signal)
 
     sorted_filtered = filter_and_sort(
         matches,
@@ -91,6 +96,34 @@ async def remove_from_matching(user_id: str = Depends(get_current_user_id)):
 
 
 # ---------- Hinge-style opt-in connections ----------
+
+@router.get("/match/score/{other_user_id}")
+async def get_pair_score(other_user_id: str, user_id: str = Depends(get_current_user_id)):
+    """
+    Blended compatibility (0-100) between the caller and another founder —
+    the SAME score the matches list shows, so the brain-card panel agrees.
+    """
+    if other_user_id == user_id:
+        return JSONResponse({"compatibility": None})
+
+    mutual = pairwise_mutual(user_id, other_user_id)
+
+    sigs: dict = {}
+    try:
+        res = (
+            get_client()
+            .table("profiles")
+            .select("id, founder_signal")
+            .in_("id", [user_id, other_user_id])
+            .execute()
+        )
+        sigs = {r["id"]: (r.get("founder_signal") or {}) for r in (res.data or [])}
+    except Exception:
+        sigs = {}
+
+    score = compatibility_score(mutual, sigs.get(user_id), sigs.get(other_user_id))
+    return JSONResponse({"compatibility": score})
+
 
 @router.get("/match/connections")
 async def get_connections(user_id: str = Depends(get_current_user_id)):

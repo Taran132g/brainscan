@@ -264,9 +264,124 @@ def _cosine(a: List[float], b: List[float]) -> float:
     return dot / (na * nb)
 
 
-def find_matches(user_id: str, top_k: int = 10) -> List[dict]:
+# ---------- Compatibility score (single source of truth) ----------
+#
+# Shown on the matches list AND the brain-card panel so they always agree.
+# Two ingredients, blended 50/50:
+#   1. Calibrated embedding similarity — e5-large cosine for related founder
+#      text lives in a narrow band (~0.80–0.85), so we STRETCH that band across
+#      [0,1] to make the real differences legible instead of all reading ~82%.
+#   2. Founder-signal compatibility — the explainable pairwise score (domain
+#      obsession / stability / intelligence / shipped / market), mirrored from
+#      the frontend lib/match-score.ts so both stay in lock-step.
+
+_EMB_LO = 0.80   # below this, semantic overlap is negligible → 0
+_EMB_HI = 0.85   # at/above this, strong semantic overlap → 1
+
+_GRADE = {"low": 0.0, "medium": 0.5, "high": 1.0}
+_VERDICT_W = {"aligned": 1.0, "complementary": 0.7, "mismatch": 0.3}
+
+
+def _calibrate_embedding(raw: Optional[float]) -> Optional[float]:
+    if raw is None:
+        return None
+    return max(0.0, min(1.0, (raw - _EMB_LO) / (_EMB_HI - _EMB_LO)))
+
+
+def _grade_verdict(host, viewer, complementary_good: bool = False) -> Optional[str]:
+    if not host or not viewer:
+        return None
+    d = abs(_GRADE.get(host, 0.5) - _GRADE.get(viewer, 0.5))
+    if d == 0:
+        return "aligned"
+    if d == 0.5:
+        return "complementary" if complementary_good else "aligned"
+    return "complementary" if complementary_good else "mismatch"
+
+
+def signal_fraction(host: dict, viewer: dict) -> Optional[float]:
+    """0..1 founder-signal compatibility, or None if nothing comparable."""
+    host = host or {}
+    viewer = viewer or {}
+    verdicts: list[str] = []
+    for key, comp_good in (
+        ("domain_obsession", False),
+        ("emotional_stability_signal", False),
+        ("implied_intelligence", True),
+    ):
+        v = _grade_verdict(host.get(key), viewer.get(key), comp_good)
+        if v:
+            verdicts.append(v)
+    if host.get("shipped_before") is not None and viewer.get("shipped_before") is not None:
+        hs, vs = host.get("shipped_before"), viewer.get("shipped_before")
+        verdicts.append("aligned" if (hs and vs) else "complementary" if (hs or vs) else "mismatch")
+    hm, vm = host.get("market_orientation"), viewer.get("market_orientation")
+    if hm and vm:
+        verdicts.append(
+            "aligned" if hm == vm
+            else "complementary" if (hm == "mixed" or vm == "mixed")
+            else "mismatch"
+        )
+    if not verdicts:
+        return None
+    return sum(_VERDICT_W[v] for v in verdicts) / len(verdicts)
+
+
+def compatibility_score(
+    embedding_mutual: Optional[float],
+    viewer_signal: Optional[dict],
+    cand_signal: Optional[dict],
+) -> int:
+    """Blended 0-100 compatibility. Falls back gracefully if a half is missing."""
+    emb = _calibrate_embedding(embedding_mutual)
+    sig = signal_fraction(cand_signal or {}, viewer_signal or {})
+    if emb is not None and sig is not None:
+        overall = 0.5 * emb + 0.5 * sig
+    elif emb is not None:
+        overall = emb
+    elif sig is not None:
+        overall = sig
+    else:
+        overall = 0.5
+    return round(overall * 100)
+
+
+def pairwise_mutual(a_id: str, b_id: str) -> Optional[float]:
+    """Raw embedding mutual score between two users (for the brain-card panel)."""
+    index = _get_index()
+    pf = index.fetch(ids=[a_id, b_id], namespace=PROFILE_NAMESPACE).vectors or {}
+    nf = index.fetch(ids=[a_id, b_id], namespace=NEEDS_NAMESPACE).vectors or {}
+
+    def vec(obj):
+        if not obj:
+            return None
+        return obj["values"] if isinstance(obj, dict) else obj.values
+
+    a_profile, b_profile = vec(pf.get(a_id)), vec(pf.get(b_id))
+    a_needs, b_needs = vec(nf.get(a_id)), vec(nf.get(b_id))
+    if not (a_profile and b_profile and a_needs and b_needs):
+        return None
+    a_to_b = _cosine(a_needs, b_profile)
+    b_to_a = _cosine(b_needs, a_profile)
+    return (a_to_b + b_to_a) / 2.0
+
+
+def cand_signal_from_meta(meta: dict) -> dict:
+    """Map a match's short metadata keys onto the canonical founder-signal shape."""
+    return {
+        "domain_obsession": meta.get("domain_obsession"),
+        "emotional_stability_signal": meta.get("emotional_stability"),
+        "implied_intelligence": meta.get("intelligence"),
+        "market_orientation": meta.get("market"),
+        "shipped_before": meta.get("shipped_before"),
+    }
+
+
+def find_matches(user_id: str, top_k: int = 10, viewer_signal: Optional[dict] = None) -> List[dict]:
     """
-    Return top-K co-founder matches with mutual scoring.
+    Return top-K co-founder matches with mutual scoring + blended compatibility.
+    `viewer_signal` is the caller's founder_signal — when provided, each result
+    gets a `compatibility` (0-100) that the matches list + brain card both show.
     Returns empty list if the user hasn't uploaded a brain card yet.
     """
     index = _get_index()
@@ -331,9 +446,13 @@ def find_matches(user_id: str, top_k: int = 10) -> List[dict]:
             mutual = a_to_b * 0.7
 
         meta = metas.get(cid, {})
+        compatibility = compatibility_score(
+            mutual, viewer_signal, cand_signal_from_meta(meta)
+        )
         results.append({
             "user_id": cid,
             "mutual_score": round(mutual, 4),
+            "compatibility": compatibility,
             "a_to_b_score": round(a_to_b, 4),
             "b_to_a_score": round(b_to_a, 4) if b_to_a is not None else None,
             "name": meta.get("name") or "Founder",
@@ -417,7 +536,11 @@ def filter_and_sort(
                 -(m.get("mutual_score") or 0),
             )
         )
-    else:  # mutual_fit (default)
-        out.sort(key=lambda m: m.get("mutual_score") or 0, reverse=True)
+    else:  # mutual_fit (default) — rank by the blended compatibility users see
+        out.sort(
+            key=lambda m: (m.get("compatibility") if m.get("compatibility") is not None
+                           else (m.get("mutual_score") or 0) * 100),
+            reverse=True,
+        )
 
     return out
