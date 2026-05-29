@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { Save, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { ConnectGitHub } from "@/components/ConnectGitHub";
 import { ConnectLinkedIn } from "@/components/ConnectLinkedIn";
 import { ScanStats } from "@/components/ScanStats";
@@ -61,12 +62,29 @@ export default function ProfilePage() {
   const handleSave = async () => {
     setSaving(true);
     setError("");
+    // 1. Auth metadata — drives display name + repopulates this form on reload.
     const { error: err } = await supabase.auth.updateUser({ data: fields });
-    setSaving(false);
     if (err) {
+      setSaving(false);
       setError(err.message);
       return;
     }
+    // 2. profiles table — this is what the matching layer reads. Syncing here is
+    // what makes the city you type actually drive the "nearest" match sort and
+    // your public profile/discover card.
+    try {
+      const r = await authedFetch(`${API_BASE_URL}/api/profile/me`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(fields),
+      });
+      if (!r.ok) throw new Error("Could not sync profile to matching");
+    } catch (e) {
+      setSaving(false);
+      setError(e instanceof Error ? e.message : "Profile saved, but matching sync failed.");
+      return;
+    }
+    setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };

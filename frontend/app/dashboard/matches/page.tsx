@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, MapPin, GraduationCap, Sparkles, ArrowRight, Loader2, RefreshCw, ExternalLink, Filter } from "lucide-react";
+import {
+  Users, MapPin, GraduationCap, Sparkles, ArrowRight, Loader2, RefreshCw,
+  ExternalLink, Filter, UserPlus, Check, Clock, MessageCircle,
+} from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -24,6 +27,9 @@ type Match = {
   shipped_before?: boolean;
   distance_km?: number | null;
 };
+
+type ConnStatus = "connected" | "pending_outgoing" | "pending_incoming" | "passed" | "none";
+type Conn = { status: ConnStatus; match_id: string };
 
 type SortMode = "mutual_fit" | "smartest" | "rank" | "nearest";
 
@@ -74,6 +80,10 @@ export default function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Connection state keyed by other user's id
+  const [conns, setConns] = useState<Record<string, Conn>>({});
+  const [connecting, setConnecting] = useState<string | null>(null);
+
   // Filters + sort
   const [sort, setSort] = useState<SortMode>("mutual_fit");
   const [market, setMarket] = useState("all");
@@ -81,7 +91,22 @@ export default function MatchesPage() {
   const [tier, setTier] = useState("all");
   const [shippedOnly, setShippedOnly] = useState(false);
 
-  const load = async () => {
+  const loadConns = useCallback(async () => {
+    try {
+      const r = await authedFetch(`${API_BASE_URL}/api/match/connections`);
+      if (!r.ok) return;
+      const data = await r.json();
+      const map: Record<string, Conn> = {};
+      for (const c of data.connections || []) {
+        map[c.other_user_id] = { status: c.status, match_id: c.match_id };
+      }
+      setConns(map);
+    } catch {
+      /* non-fatal — connect buttons just default to "Connect" */
+    }
+  }, []);
+
+  const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setError("");
@@ -108,9 +133,24 @@ export default function MatchesPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user, sort, market, role, tier, shippedOnly]);
 
-  useEffect(() => { load(); }, [user, sort, market, role, tier, shippedOnly]);
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { if (user) loadConns(); }, [user, loadConns]);
+
+  const onConnect = async (otherId: string) => {
+    setConnecting(otherId);
+    try {
+      const r = await authedFetch(`${API_BASE_URL}/api/match/${otherId}/connect`, { method: "POST" });
+      if (!r.ok) throw new Error("Connect failed");
+      const data = await r.json();
+      setConns((prev) => ({ ...prev, [otherId]: { status: data.status, match_id: data.match_id } }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Connect failed.");
+    } finally {
+      setConnecting(null);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -210,7 +250,13 @@ export default function MatchesPage() {
       {matches && matches.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {matches.map((m) => (
-            <MatchCard key={m.user_id} match={m} />
+            <MatchCard
+              key={m.user_id}
+              match={m}
+              conn={conns[m.user_id]}
+              connecting={connecting === m.user_id}
+              onConnect={() => onConnect(m.user_id)}
+            />
           ))}
         </div>
       )}
@@ -258,7 +304,61 @@ function FilterSelect({
   );
 }
 
-function MatchCard({ match }: { match: Match }) {
+function ConnectAction({
+  conn,
+  connecting,
+  onConnect,
+}: {
+  conn?: Conn;
+  connecting: boolean;
+  onConnect: () => void;
+}) {
+  const status = conn?.status ?? "none";
+
+  if (status === "connected") {
+    return (
+      <Link
+        href={`/dashboard/connections?match=${conn?.match_id}`}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
+        style={{ backgroundColor: "var(--accent)", color: "white" }}
+      >
+        <MessageCircle size={12} /> Message
+      </Link>
+    );
+  }
+  if (status === "pending_outgoing") {
+    return (
+      <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border"
+        style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
+        <Clock size={12} /> Request sent
+      </span>
+    );
+  }
+  const label = status === "pending_incoming" ? "Accept" : "Connect";
+  const Icon = status === "pending_incoming" ? Check : UserPlus;
+  return (
+    <button
+      onClick={onConnect}
+      disabled={connecting}
+      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+      style={{ backgroundColor: "var(--accent)", color: "white" }}
+    >
+      {connecting ? <Loader2 size={12} className="animate-spin" /> : <Icon size={12} />} {label}
+    </button>
+  );
+}
+
+function MatchCard({
+  match,
+  conn,
+  connecting,
+  onConnect,
+}: {
+  match: Match;
+  conn?: Conn;
+  connecting: boolean;
+  onConnect: () => void;
+}) {
   const tierColor = match.tier ? TIER_COLOR[match.tier] ?? "var(--accent)" : "var(--accent)";
   const initials = match.name
     .split(" ")
@@ -272,112 +372,121 @@ function MatchCard({ match }: { match: Match }) {
     : null;
 
   return (
-    <Link
-      href={`/profile/${match.user_id}`}
-      className="block p-5 rounded-xl border transition-all hover:opacity-90"
+    <div
+      className="flex flex-col p-5 rounded-xl border"
       style={{
         backgroundColor: "var(--surface)",
         borderColor: "var(--border)",
       }}
     >
-      <div className="flex items-start gap-4 mb-3">
-        <div
-          className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0"
-          style={{ backgroundColor: tierColor, color: "#0a0e17" }}
-        >
-          {initials || "?"}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between gap-2 mb-1">
-            <h3 className="text-base font-semibold truncate" style={{ color: "var(--text-primary)" }}>
-              {match.name}
-            </h3>
-            {match.rank != null && match.rank > 0 && (
-              <span
-                className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap"
-                style={{ backgroundColor: `${tierColor}25`, color: tierColor }}
-              >
-                {match.tier} · {match.rank}/10
-              </span>
-            )}
+      <Link href={`/profile/${match.user_id}`} className="block transition-all hover:opacity-90">
+        <div className="flex items-start gap-4 mb-3">
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0"
+            style={{ backgroundColor: tierColor, color: "#0a0e17" }}
+          >
+            {initials || "?"}
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-[11px]" style={{ color: "var(--text-secondary)" }}>
-            {match.city && (
-              <span className="flex items-center gap-1">
-                <MapPin size={10} /> {match.city}
-                {typeof match.distance_km === "number" && (
-                  <span style={{ opacity: 0.7 }}> · {match.distance_km < 50 ? "nearby" : `${Math.round(match.distance_km).toLocaleString()} km`}</span>
-                )}
-              </span>
-            )}
-            {match.school && (
-              <span className="flex items-center gap-1"><GraduationCap size={10} /> {match.school}</span>
-            )}
-          </div>
-          {(roleLabel || match.market || match.intelligence) && (
-            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-              {roleLabel && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)" }}>
-                  {roleLabel}
-                </span>
-              )}
-              {match.market && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "var(--background)", color: "var(--text-secondary)" }}>
-                  {match.market}
-                </span>
-              )}
-              {match.intelligence === "high" && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "rgba(16,185,129,0.15)", color: "#10b981" }}>
-                  high IQ
-                </span>
-              )}
-              {match.shipped_before && (
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
-                  shipped
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <h3 className="text-base font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                {match.name}
+              </h3>
+              {match.rank != null && match.rank > 0 && (
+                <span
+                  className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full whitespace-nowrap"
+                  style={{ backgroundColor: `${tierColor}25`, color: tierColor }}
+                >
+                  {match.tier} · {match.rank}/10
                 </span>
               )}
             </div>
-          )}
+            <div className="flex flex-wrap items-center gap-3 text-[11px]" style={{ color: "var(--text-secondary)" }}>
+              {match.city && (
+                <span className="flex items-center gap-1">
+                  <MapPin size={10} /> {match.city}
+                  {typeof match.distance_km === "number" && (
+                    <span style={{ opacity: 0.7 }}> · {match.distance_km < 50 ? "nearby" : `${Math.round(match.distance_km).toLocaleString()} km`}</span>
+                  )}
+                </span>
+              )}
+              {match.school && (
+                <span className="flex items-center gap-1"><GraduationCap size={10} /> {match.school}</span>
+              )}
+            </div>
+            {(roleLabel || match.market || match.intelligence) && (
+              <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                {roleLabel && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)" }}>
+                    {roleLabel}
+                  </span>
+                )}
+                {match.market && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: "var(--background)", color: "var(--text-secondary)" }}>
+                    {match.market}
+                  </span>
+                )}
+                {match.intelligence === "high" && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: "rgba(16,185,129,0.15)", color: "#10b981" }}>
+                    high IQ
+                  </span>
+                )}
+                {match.shipped_before && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                    style={{ backgroundColor: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                    shipped
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Mutual score bar */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-            Mutual fit
-          </span>
-          <span className="text-xs font-semibold" style={{ color: tierColor }}>
-            {mutualPct}%
-          </span>
+        {/* Mutual score bar */}
+        <div className="mb-3">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              Mutual fit
+            </span>
+            <span className="text-xs font-semibold" style={{ color: tierColor }}>
+              {mutualPct}%
+            </span>
+          </div>
+          <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${mutualPct}%`,
+                backgroundColor: tierColor,
+              }}
+            />
+          </div>
         </div>
-        <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: "var(--background)" }}>
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${mutualPct}%`,
-              backgroundColor: tierColor,
-            }}
-          />
-        </div>
-      </div>
 
-      {(match.building_preview || match.preview) && (
-        <p
-          className="text-xs leading-relaxed line-clamp-3 mb-2"
-          style={{ color: "var(--text-secondary)" }}
+        {(match.building_preview || match.preview) && (
+          <p
+            className="text-xs leading-relaxed line-clamp-3 mb-3"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {match.building_preview || match.preview}
+          </p>
+        )}
+      </Link>
+
+      {/* Actions */}
+      <div className="flex items-center justify-between gap-2 mt-auto pt-1">
+        <ConnectAction conn={conn} connecting={connecting} onConnect={onConnect} />
+        <Link
+          href={`/profile/${match.user_id}`}
+          className="flex items-center gap-1 text-[11px] font-medium"
+          style={{ color: "var(--accent)" }}
         >
-          {match.building_preview || match.preview}
-        </p>
-      )}
-
-      <div className="flex items-center justify-end gap-1 text-[11px] font-medium" style={{ color: "var(--accent)" }}>
-        View brain card <ExternalLink size={10} />
+          View brain card <ExternalLink size={10} />
+        </Link>
       </div>
-    </Link>
+    </div>
   );
 }

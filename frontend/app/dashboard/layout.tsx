@@ -3,12 +3,13 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Brain, Home, User, FileArchive, Settings, LogOut, Globe2, Users } from "lucide-react";
+import { Brain, Home, User, FileArchive, Settings, LogOut, Globe2, Users, MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: Home, exact: true },
   { href: "/dashboard/matches", label: "Matches", icon: Users },
+  { href: "/dashboard/connections", label: "Connections", icon: MessageCircle },
   { href: "/dashboard/discover", label: "Discover", icon: Globe2 },
   { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/vault", label: "Vault & Uploads", icon: FileArchive },
