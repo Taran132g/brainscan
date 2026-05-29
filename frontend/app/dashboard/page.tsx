@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Globe2 } from "lucide-react";
+import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Users } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { BrainCardHero } from "@/components/BrainCardHero";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
@@ -134,16 +134,16 @@ export default function DashboardOverview() {
                 href="/upload"
               />
               <ActionCard
-                icon={<Globe2 size={18} style={{ color: "var(--accent)" }} />}
-                title="Discover founders"
-                description="Browse 500+ founders worldwide on the globe"
-                href="/dashboard/discover"
+                icon={<Users size={18} style={{ color: "var(--accent)" }} />}
+                title="Your matches"
+                description="Co-founders whose thinking complements yours"
+                href="/dashboard/matches"
               />
               <ActionCard
                 icon={<Sparkles size={18} style={{ color: "var(--accent)" }} />}
-                title="Matching"
-                description="Coming soon — opt in to AI-driven match suggestions"
-                disabled
+                title="Connections"
+                description="Connect, then message founders who accept back"
+                href="/dashboard/connections"
               />
             </div>
           </section>

@@ -26,7 +26,7 @@ const TIERS: {
     features: [
       { text: "Full brain card analysis", included: true },
       { text: "5 founder signals (rank, intelligence, etc.)", included: true },
-      { text: "Discover globe — browse other founders", included: true },
+      { text: "Public shareable profile link", included: true },
       { text: "Matching access", included: false },
       { text: "AI build suggestions", included: false },
       { text: "Monthly upload quota", included: false },

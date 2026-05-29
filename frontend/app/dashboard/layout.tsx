@@ -3,14 +3,13 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Brain, Home, User, FileArchive, Settings, LogOut, Globe2, Users, MessageCircle } from "lucide-react";
+import { Brain, Home, User, FileArchive, Settings, LogOut, Users, MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: Home, exact: true },
   { href: "/dashboard/matches", label: "Matches", icon: Users },
   { href: "/dashboard/connections", label: "Connections", icon: MessageCircle },
-  { href: "/dashboard/discover", label: "Discover", icon: Globe2 },
   { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/vault", label: "Vault & Uploads", icon: FileArchive },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
@@ -72,8 +71,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               await signOut();
               router.push("/");
             }}
-            className="flex items-center gap-1.5 text-xs"
-            style={{ color: "var(--text-secondary)" }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
           >
             <LogOut size={12} /> Sign out
           </button>

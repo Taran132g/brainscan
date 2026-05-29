@@ -216,8 +216,8 @@ export default function UploadPage() {
               await signOut();
               router.push("/");
             }}
-            className="flex items-center gap-1 text-xs"
-            style={{ color: "var(--text-secondary)" }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors"
+            style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
           >
             <LogOut size={12} /> Sign out
           </button>

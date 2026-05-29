@@ -14,6 +14,7 @@ type Stats = {
   uploads_in_cycle: number;
   free_uploads_per_cycle: number | null;
   remaining_this_cycle: number | null;
+  first_free_available?: boolean;
   can_upload: boolean;
 };
 
@@ -45,10 +46,12 @@ export function ScanStats({ compact = false }: { compact?: boolean }) {
     if (stats.available_credits > 0) {
       remainingText += ` · +${stats.available_credits} purchased credit${stats.available_credits === 1 ? "" : "s"}`;
     }
+  } else if (stats.first_free_available) {
+    remainingText = "✨ Your first brain card is free";
   } else if (stats.available_credits > 0) {
     remainingText = `${stats.available_credits} scan${stats.available_credits === 1 ? "" : "s"} available`;
   } else if (stats.subscription_tier === "free") {
-    remainingText = "Buy your first brain card to scan";
+    remainingText = "You've used your free brain card — buy a scan for $0.99";
   } else {
     remainingText = "Out of credits — buy an extra scan for $0.99";
   }
