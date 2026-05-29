@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { Brain, User, Lightbulb, Heart, Users, ArrowRight, RefreshCw, Share2, Check } from "lucide-react";
 import Link from "next/link";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { BrainCardHero } from "@/components/BrainCardHero";
 import { MatchPanel } from "@/components/MatchPanel";
@@ -57,6 +57,7 @@ export default function ProfilePage() {
   const [userName, setUserName] = useState("");
   const [publicProfile, setPublicProfile] = useState<PublicProfileFields | undefined>(undefined);
   const [viewerCard, setViewerCard] = useState<BrainCard | null>(null);
+  const [pairCompatibility, setPairCompatibility] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
@@ -136,6 +137,7 @@ export default function ProfilePage() {
   useEffect(() => {
     if (!user || user.id === userId) {
       setViewerCard(null);
+      setPairCompatibility(null);
       return;
     }
     fetch(`${API_BASE_URL}/api/profile/${user.id}/public-card`)
@@ -144,6 +146,12 @@ export default function ProfilePage() {
         if (data?.brain_card) setViewerCard(data.brain_card);
       })
       .catch(() => setViewerCard(null));
+
+    // Same blended compatibility the matches list shows, so the two agree.
+    authedFetch(`${API_BASE_URL}/api/match/score/${userId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => setPairCompatibility(typeof d?.compatibility === "number" ? d.compatibility : null))
+      .catch(() => setPairCompatibility(null));
   }, [user, userId]);
 
   return (
@@ -216,6 +224,7 @@ export default function ProfilePage() {
                   viewerName={(user.user_metadata?.full_name as string) || "you"}
                   hostSignal={brainCard.founder_signal}
                   viewerSignal={viewerCard.founder_signal}
+                  compatibility={pairCompatibility}
                 />
               </div>
             )}

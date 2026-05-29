@@ -12,6 +12,9 @@ import { useAuth } from "@/lib/auth-context";
 type Match = {
   user_id: string;
   mutual_score: number;
+  // Blended compatibility (0-100) computed server-side — the same score the
+  // brain-card panel shows, so the two pages always agree.
+  compatibility?: number;
   a_to_b_score: number;
   b_to_a_score: number | null;
   name: string;
@@ -27,6 +30,10 @@ type Match = {
   shipped_before?: boolean;
   distance_km?: number | null;
 };
+
+function compatibilityOf(m: Match): number {
+  return m.compatibility ?? Math.round((m.mutual_score || 0) * 100);
+}
 
 type ConnStatus = "connected" | "pending_outgoing" | "pending_incoming" | "passed" | "none";
 type Conn = { status: ConnStatus; match_id: string };
@@ -152,6 +159,17 @@ export default function MatchesPage() {
     }
   };
 
+  // Compute compatibility for each match (same scorer as the brain-card panel).
+  // When sorting by "mutual fit", order by that compatibility so the list
+  // matches what each card shows.
+  const ranked = (matches ?? []).map((m) => ({
+    match: m,
+    compatibility: compatibilityOf(m),
+  }));
+  if (sort === "mutual_fit") {
+    ranked.sort((a, b) => b.compatibility - a.compatibility);
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4">
@@ -249,10 +267,11 @@ export default function MatchesPage() {
 
       {matches && matches.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {matches.map((m) => (
+          {ranked.map(({ match: m, compatibility }) => (
             <MatchCard
               key={m.user_id}
               match={m}
+              compatibility={compatibility}
               conn={conns[m.user_id]}
               connecting={connecting === m.user_id}
               onConnect={() => onConnect(m.user_id)}
@@ -350,11 +369,13 @@ function ConnectAction({
 
 function MatchCard({
   match,
+  compatibility,
   conn,
   connecting,
   onConnect,
 }: {
   match: Match;
+  compatibility: number;
   conn?: Conn;
   connecting: boolean;
   onConnect: () => void;
@@ -366,7 +387,7 @@ function MatchCard({
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  const mutualPct = Math.round(match.mutual_score * 100);
+  const mutualPct = compatibility;
   const roleLabel = match.primary_role
     ? match.primary_role[0].toUpperCase() + match.primary_role.slice(1)
     : null;
@@ -449,7 +470,7 @@ function MatchCard({
         <div className="mb-3">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-              Mutual fit
+              Compatibility
             </span>
             <span className="text-xs font-semibold" style={{ color: tierColor }}>
               {mutualPct}%

@@ -17,6 +17,10 @@ interface Props {
   viewerName: string;
   hostSignal: Signal;
   viewerSignal: Signal;
+  // Blended compatibility from the backend (same number the matches list shows).
+  // When provided it drives the headline number; the signal pairs below remain
+  // an explainable breakdown. Falls back to the client signal score if absent.
+  compatibility?: number | null;
 }
 
 const VERDICT_COLOR: Record<PairVerdict, string> = {
@@ -33,12 +37,22 @@ const VERDICT_LABEL: Record<PairVerdict, string> = {
   unknown: "—",
 };
 
-export function MatchPanel({ hostName, viewerName, hostSignal, viewerSignal }: Props) {
+export function MatchPanel({ hostName, viewerName, hostSignal, viewerSignal, compatibility }: Props) {
   const result = scoreMatch(hostSignal, viewerSignal);
+
+  // Headline number: prefer the backend's blended compatibility (matches the
+  // matches list); fall back to the client signal score if it hasn't loaded.
+  const score = typeof compatibility === "number" ? compatibility : result.score;
+
+  const headline =
+    score >= 80 ? "Strong fit. Worth a real conversation."
+    : score >= 60 ? "Workable match. Some gaps worth probing."
+    : score >= 40 ? "Mixed signals. Could complement if you're honest about the gaps."
+    : "Tough fit on paper. Maybe better as friends.";
 
   // Pick the band color for the score number
   const scoreColor =
-    result.score >= 80 ? "#10b981" : result.score >= 60 ? "#a78bfa" : result.score >= 40 ? "#f59e0b" : "#f87171";
+    score >= 80 ? "#10b981" : score >= 60 ? "#a78bfa" : score >= 40 ? "#f59e0b" : "#f87171";
 
   const firstHost = hostName.split(" ")[0] || "them";
   const firstViewer = viewerName.split(" ")[0] || "you";
@@ -73,7 +87,7 @@ export function MatchPanel({ hostName, viewerName, hostSignal, viewerSignal }: P
         </div>
         <div className="text-right">
           <div className="text-4xl font-bold" style={{ color: scoreColor }}>
-            {result.score}
+            {score}
           </div>
           <div className="text-xs" style={{ color: "#94a3b8" }}>
             /100
@@ -82,7 +96,7 @@ export function MatchPanel({ hostName, viewerName, hostSignal, viewerSignal }: P
       </div>
 
       <div className="px-6 pb-4 text-sm" style={{ color: "#cbd5e1" }}>
-        {result.headline}
+        {headline}
       </div>
 
       <div className="border-t" style={{ borderColor: "rgba(148,163,184,0.15)" }}>
