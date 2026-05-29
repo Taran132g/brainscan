@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Users, MapPin, GraduationCap, Sparkles, ArrowRight, Loader2, RefreshCw, ExternalLink } from "lucide-react";
+import { Users, MapPin, GraduationCap, Sparkles, ArrowRight, Loader2, RefreshCw, ExternalLink, Filter } from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -18,7 +18,46 @@ type Match = {
   rank?: number;
   preview?: string;
   building_preview?: string;
+  market?: string;
+  intelligence?: "low" | "medium" | "high";
+  primary_role?: "technical" | "business" | "design" | "domain" | null;
+  shipped_before?: boolean;
+  distance_km?: number | null;
 };
+
+type SortMode = "mutual_fit" | "smartest" | "rank" | "nearest";
+
+const SORT_OPTIONS: { value: SortMode; label: string }[] = [
+  { value: "mutual_fit", label: "Mutual fit" },
+  { value: "smartest", label: "Smartest first" },
+  { value: "rank", label: "Highest rank" },
+  { value: "nearest", label: "Nearest to me" },
+];
+
+const MARKET_OPTIONS = [
+  { value: "all", label: "Any market" },
+  { value: "b2b", label: "B2B" },
+  { value: "consumer", label: "Consumer" },
+  { value: "infrastructure", label: "Infrastructure" },
+  { value: "mixed", label: "Mixed" },
+];
+
+const ROLE_OPTIONS = [
+  { value: "all", label: "Any role" },
+  { value: "technical", label: "Technical" },
+  { value: "business", label: "Business / GTM" },
+  { value: "design", label: "Design / UX" },
+  { value: "domain", label: "Domain expert" },
+];
+
+const TIER_OPTIONS = [
+  { value: "all", label: "Any tier" },
+  { value: "Visionary", label: "Visionary" },
+  { value: "Builder", label: "Builder" },
+  { value: "Operator", label: "Operator" },
+  { value: "Explorer", label: "Explorer" },
+  { value: "Newcomer", label: "Newcomer" },
+];
 
 const TIER_COLOR: Record<string, string> = {
   Visionary: "#fbbf24",
@@ -31,21 +70,38 @@ const TIER_COLOR: Record<string, string> = {
 export default function MatchesPage() {
   const { user } = useAuth();
   const [matches, setMatches] = useState<Match[] | null>(null);
+  const [totalAvailable, setTotalAvailable] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Filters + sort
+  const [sort, setSort] = useState<SortMode>("mutual_fit");
+  const [market, setMarket] = useState("all");
+  const [role, setRole] = useState("all");
+  const [tier, setTier] = useState("all");
+  const [shippedOnly, setShippedOnly] = useState(false);
 
   const load = async () => {
     if (!user) return;
     setLoading(true);
     setError("");
     try {
-      const r = await authedFetch(`${API_BASE_URL}/api/match/me?top_k=10`);
+      const params = new URLSearchParams({
+        top_k: "10",
+        sort,
+        market,
+        role,
+        tier,
+        shipped_only: shippedOnly ? "true" : "false",
+      });
+      const r = await authedFetch(`${API_BASE_URL}/api/match/me?${params.toString()}`);
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
         throw new Error(typeof d.detail === "string" ? d.detail : "Could not load matches");
       }
       const data = await r.json();
       setMatches(data.matches || []);
+      setTotalAvailable(data.total_available || 0);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load matches.");
       setMatches([]);
@@ -54,7 +110,7 @@ export default function MatchesPage() {
     }
   };
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [user, sort, market, role, tier, shippedOnly]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -65,7 +121,7 @@ export default function MatchesPage() {
           </h1>
           <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
             {matches && matches.length > 0
-              ? `${matches.length} founders whose thinking complements yours, ranked by mutual compatibility.`
+              ? `Showing ${matches.length} of ${totalAvailable} ${sort === "nearest" ? "by distance" : sort === "smartest" ? "by intelligence" : sort === "rank" ? "by rank" : "by mutual fit"}.`
               : "Co-founders whose thinking complements yours."}
           </p>
         </div>
@@ -79,6 +135,38 @@ export default function MatchesPage() {
           Refresh
         </button>
       </div>
+
+      {/* Filter / sort bar */}
+      <section
+        className="p-3 rounded-xl border flex flex-wrap items-center gap-2"
+        style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+      >
+        <Filter size={13} style={{ color: "var(--text-secondary)" }} />
+        <FilterSelect label="Sort" value={sort} options={SORT_OPTIONS as { value: string; label: string }[]} onChange={(v) => setSort(v as SortMode)} />
+        <FilterSelect label="Role" value={role} options={ROLE_OPTIONS} onChange={setRole} />
+        <FilterSelect label="Market" value={market} options={MARKET_OPTIONS} onChange={setMarket} />
+        <FilterSelect label="Tier" value={tier} options={TIER_OPTIONS} onChange={setTier} />
+        <label
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border cursor-pointer text-xs"
+          style={{
+            borderColor: shippedOnly ? "var(--accent)" : "var(--border)",
+            backgroundColor: shippedOnly ? "var(--accent-glow)" : "transparent",
+            color: shippedOnly ? "var(--accent)" : "var(--text-secondary)",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={shippedOnly}
+            onChange={(e) => setShippedOnly(e.target.checked)}
+            className="appearance-none w-3 h-3 rounded border"
+            style={{
+              borderColor: "currentColor",
+              backgroundColor: shippedOnly ? "currentColor" : "transparent",
+            }}
+          />
+          Shipped only
+        </label>
+      </section>
 
       {error && (
         <p className="text-sm px-4 py-3 rounded-lg"
@@ -136,6 +224,40 @@ export default function MatchesPage() {
   );
 }
 
+function FilterSelect({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="flex items-center gap-1.5">
+      <span className="text-[10px] uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="text-xs rounded-lg px-2.5 py-1.5 outline-none border"
+        style={{
+          backgroundColor: "var(--background)",
+          borderColor: "var(--border)",
+          color: "var(--text-primary)",
+        }}
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 function MatchCard({ match }: { match: Match }) {
   const tierColor = match.tier ? TIER_COLOR[match.tier] ?? "var(--accent)" : "var(--accent)";
   const initials = match.name
@@ -145,6 +267,9 @@ function MatchCard({ match }: { match: Match }) {
     .slice(0, 2)
     .toUpperCase();
   const mutualPct = Math.round(match.mutual_score * 100);
+  const roleLabel = match.primary_role
+    ? match.primary_role[0].toUpperCase() + match.primary_role.slice(1)
+    : null;
 
   return (
     <Link
@@ -178,12 +303,45 @@ function MatchCard({ match }: { match: Match }) {
           </div>
           <div className="flex flex-wrap items-center gap-3 text-[11px]" style={{ color: "var(--text-secondary)" }}>
             {match.city && (
-              <span className="flex items-center gap-1"><MapPin size={10} /> {match.city}</span>
+              <span className="flex items-center gap-1">
+                <MapPin size={10} /> {match.city}
+                {typeof match.distance_km === "number" && (
+                  <span style={{ opacity: 0.7 }}> · {match.distance_km < 50 ? "nearby" : `${Math.round(match.distance_km).toLocaleString()} km`}</span>
+                )}
+              </span>
             )}
             {match.school && (
               <span className="flex items-center gap-1"><GraduationCap size={10} /> {match.school}</span>
             )}
           </div>
+          {(roleLabel || match.market || match.intelligence) && (
+            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+              {roleLabel && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)" }}>
+                  {roleLabel}
+                </span>
+              )}
+              {match.market && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: "var(--background)", color: "var(--text-secondary)" }}>
+                  {match.market}
+                </span>
+              )}
+              {match.intelligence === "high" && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: "rgba(16,185,129,0.15)", color: "#10b981" }}>
+                  high IQ
+                </span>
+              )}
+              {match.shipped_before && (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full"
+                  style={{ backgroundColor: "rgba(167,139,250,0.15)", color: "#a78bfa" }}>
+                  shipped
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

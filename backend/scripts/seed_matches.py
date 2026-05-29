@@ -84,6 +84,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "business",
     },
     {
         "name": "Marcus Williams",
@@ -107,6 +108,7 @@ FOUNDERS = [
                 "implied_intelligence": "medium",
             },
         },
+        "primary_role": "business",
     },
     {
         "name": "Sofia Garcia",
@@ -130,6 +132,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "business",
     },
     {
         "name": "Hiroshi Sato",
@@ -153,6 +156,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "design",
     },
     # ===== MEDIUM matches =====
     {
@@ -177,6 +181,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "business",
     },
     {
         "name": "Daniel Cohen",
@@ -200,6 +205,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "technical",
     },
     # ===== WEAKER matches (similar profiles or specialized) =====
     {
@@ -224,6 +230,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "technical",
     },
     {
         "name": "Jordan Kim",
@@ -247,6 +254,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "technical",
     },
     {
         "name": "Yuki Tanaka",
@@ -270,6 +278,7 @@ FOUNDERS = [
                 "implied_intelligence": "medium",
             },
         },
+        "primary_role": "design",
     },
     {
         "name": "Ethan Park",
@@ -293,6 +302,7 @@ FOUNDERS = [
                 "implied_intelligence": "high",
             },
         },
+        "primary_role": "domain",
     },
 ]
 
@@ -415,6 +425,7 @@ def seed():
                     "founder_tier": f["tier"],
                     "founder_rank": f["rank"],
                 },
+                primary_role=f.get("primary_role"),
             )
             print(f"  ✓ {name}: match vectors {'stored' if ok else 'SKIPPED (no text)'}")
         except Exception as e:
