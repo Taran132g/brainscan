@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import anthropic
 from typing import List
 from collections import defaultdict
@@ -129,9 +130,107 @@ def _sample_diverse_chunks(chunks: List[dict], target: int = 40) -> List[dict]:
     return selected
 
 
-def generate_brain_card(chunks: List[dict], external_signals: dict | None = None) -> dict:
+# Per-dimension retrieval queries. Each brain-card section is grounded in the
+# chunks most semantically relevant to that dimension, instead of a flat
+# diversity sample. Round-robin merging keeps every section represented.
+RETRIEVAL_QUERIES = {
+    "who_they_are": "personal background, domain expertise, education, career history, professional journey, where they are in life right now",
+    "what_theyre_building": "current projects, startups, products, side projects, business ideas, things being built shipped or launched",
+    "how_they_think": "mental models, frameworks, reasoning style, decision making, recurring patterns in thinking, how problems are approached",
+    "what_they_value": "core values, work ethic, risk tolerance, long-term vision, motivations, what matters beyond money",
+    "what_they_need_in_cofounder": "skills and gaps, strengths and weaknesses, technical versus business ability, blind spots, what would complement them",
+    "founder_signal": "founder readiness, obsession with a domain, finishing and shipping products, ambition, emotional steadiness, market focus",
+}
+
+
+def _round_robin_dedup(ranked_lists: List[List[dict]], target: int) -> List[dict]:
+    """Merge per-query ranked hit lists, taking one from each in turn, skipping dupes."""
+    seen = set()
+    selected: List[dict] = []
+    iterators = [iter(lst) for lst in ranked_lists]
+    active = list(range(len(iterators)))
+
+    while active and len(selected) < target:
+        next_active = []
+        for i in active:
+            try:
+                hit = next(iterators[i])
+            except StopIteration:
+                continue
+            key = (hit.get("file_path"), hit.get("heading"), (hit.get("text") or "")[:50])
+            if key in seen:
+                next_active.append(i)  # consumed a dupe; keep pulling from this list
+                continue
+            seen.add(key)
+            selected.append(hit)
+            if len(selected) >= target:
+                break
+            next_active.append(i)
+        active = next_active
+
+    return selected
+
+
+def _retrieve_brain_card_chunks(
+    user_id: str, target: int = 40, min_chunks: int = 10, max_attempts: int = 3
+) -> List[dict]:
+    """
+    Retrieval-driven chunk selection for the brain card.
+
+    Runs one semantic query per brain-card dimension against the user's private
+    Pinecone namespace, then round-robin merges the hits (deduped) so the card
+    is grounded in each section's most relevant notes rather than a flat sample.
+
+    Because vectors are frequently upserted moments before this runs (during the
+    upload flow), Pinecone's serverless index can lag — so we retry the whole
+    sweep a few times with backoff when the first pass comes back thin.
+    """
+    from services.embedder import embed_query
+    from services.vector_store import query_namespace
+
+    queries = list(RETRIEVAL_QUERIES.values())
+    per_query_k = max(10, (target // len(queries)) + 6)
+
+    selected: List[dict] = []
+    for attempt in range(max_attempts):
+        ranked_lists = []
+        for q in queries:
+            try:
+                hits = query_namespace(user_id, embed_query(q), top_k=per_query_k)
+            except Exception as e:
+                print(f"[brain_card] retrieval query failed: {e}")
+                hits = []
+            ranked_lists.append(hits)
+
+        selected = _round_robin_dedup(ranked_lists, target)
+
+        if len(selected) >= min_chunks or attempt == max_attempts - 1:
+            return selected
+
+        # Index probably still catching up after the upsert — back off and retry.
+        wait = 2.0 * (attempt + 1)
+        print(
+            f"[brain_card] retrieval thin ({len(selected)} chunks); "
+            f"waiting {wait}s for index (attempt {attempt + 1}/{max_attempts})"
+        )
+        time.sleep(wait)
+
+    return selected
+
+
+def generate_brain_card(
+    chunks: List[dict],
+    external_signals: dict | None = None,
+    user_id: str | None = None,
+) -> dict:
     """
     Generate a structured brain card from vault chunks.
+
+    Chunk selection is retrieval-driven when `user_id` is provided: one semantic
+    query per brain-card dimension runs against the user's namespace, so each
+    section is grounded in its most relevant notes. Falls back to flat diversity
+    sampling over `chunks` if retrieval is unavailable or comes back thin (e.g.
+    before Pinecone's index has caught up with a just-completed upsert).
 
     `external_signals`: optional dict of public profile signals (github_url,
     linkedin_url). We don't fetch the actual content here — that's Phase 2
@@ -141,7 +240,17 @@ def generate_brain_card(chunks: List[dict], external_signals: dict | None = None
 
     Returns {sections: dict, founder_signal: dict, raw: dict}.
     """
-    selected = _sample_diverse_chunks(chunks, target=40)
+    selected: List[dict] = []
+    if user_id:
+        selected = _retrieve_brain_card_chunks(user_id, target=40)
+        if len(selected) < 10:
+            print(
+                f"[brain_card] retrieval yielded {len(selected)} chunks; "
+                "falling back to diversity sampling"
+            )
+            selected = []
+    if not selected:
+        selected = _sample_diverse_chunks(chunks, target=40)
 
     notes = "\n\n---\n\n".join(
         f"[{c['title']} / {c.get('heading', '')}]\n{c['text']}" for c in selected
@@ -186,7 +295,7 @@ def generate_brain_card(chunks: List[dict], external_signals: dict | None = None
     ) if signals_lines else ""
 
     message = _get_client().messages.create(
-        model="claude-opus-4-7",
+        model="claude-opus-4-8",
         max_tokens=2500,
         system=BRAIN_CARD_SYSTEM,
         tools=[BRAIN_CARD_TOOL],

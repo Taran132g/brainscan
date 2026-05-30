@@ -98,7 +98,7 @@ async def upload_vault(
         external_signals["github_quality"] = profile_row.get("github_quality")
     if linkedin_url:
         external_signals["linkedin_url"] = linkedin_url
-    brain_card = generate_brain_card(all_chunks, external_signals=external_signals)
+    brain_card = generate_brain_card(all_chunks, external_signals=external_signals, user_id=user_id)
 
     # Persist to Postgres — both an append-only upload record and a profile snapshot.
     # Soft-fails if Supabase isn't configured yet (so dev still works pre-migration).

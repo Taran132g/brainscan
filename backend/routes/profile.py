@@ -175,7 +175,10 @@ async def get_brain_card(user_id: str = Depends(verify_user_owns_path)):
     if not chunks:
         raise HTTPException(status_code=404, detail="No vault data found for this user")
 
-    brain_card = generate_brain_card(chunks)
+    # Retrieval-driven: generate_brain_card runs per-dimension queries against the
+    # user's namespace internally. The `chunks` above double as the existence guard
+    # and the diversity-sampling fallback.
+    brain_card = generate_brain_card(chunks, user_id=user_id)
 
     return {
         "user_id": user_id,
