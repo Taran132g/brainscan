@@ -40,7 +40,14 @@ export function ChatThread({
   const mergeMessages = useCallback((incoming: Message[]) => {
     setMessages((prev) => {
       const byId = new Map(prev.map((m) => [m.id, m]));
-      for (const m of incoming) byId.set(m.id, m);
+      let changed = false;
+      for (const m of incoming) {
+        if (!byId.has(m.id)) changed = true;
+        byId.set(m.id, m);
+      }
+      // Referential stability: if the poll brought nothing new, keep the same
+      // array so we don't re-render and auto-scroll the user back to the bottom.
+      if (!changed) return prev;
       return Array.from(byId.values()).sort((a, b) =>
         a.created_at.localeCompare(b.created_at)
       );
@@ -159,6 +166,7 @@ export function ChatThread({
       <div className="flex items-center gap-2 pt-3 border-t mt-2" style={{ borderColor: "var(--border)" }}>
         <input
           value={draft}
+          maxLength={4000}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {

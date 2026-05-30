@@ -91,8 +91,14 @@ def set_decision(me: str, other: str, accept: bool) -> dict:
     if row:
         sb.table("matches").update(payload).eq("id", row["id"]).execute()
     else:
-        payload.update({"user_a": user_a, "user_b": user_b})
-        sb.table("matches").insert(payload).execute()
+        try:
+            sb.table("matches").insert(
+                {**payload, "user_a": user_a, "user_b": user_b}
+            ).execute()
+        except Exception:
+            # Lost an insert race (uq_matches_pair) — the row exists now, so
+            # apply our decision as an update instead of 500-ing.
+            sb.table("matches").update(payload).eq("user_a", user_a).eq("user_b", user_b).execute()
 
     # Read back the authoritative state
     fresh = (
