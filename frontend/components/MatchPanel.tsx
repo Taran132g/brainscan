@@ -63,7 +63,7 @@ export function MatchPanel({ hostName, viewerName, hostSignal, viewerSignal, com
       style={{
         backgroundColor: "#0a0a0f",
         backgroundImage:
-          "radial-gradient(circle at 20% 0%, rgba(99,102,241,0.18) 0%, transparent 60%), radial-gradient(circle at 100% 100%, rgba(139,92,246,0.14) 0%, transparent 55%)",
+          "radial-gradient(circle at 20% 0%, rgba(16,185,129,0.18) 0%, transparent 60%), radial-gradient(circle at 100% 100%, rgba(139,92,246,0.14) 0%, transparent 55%)",
         borderColor: "rgba(148,163,184,0.18)",
         color: "white",
       }}
@@ -72,7 +72,7 @@ export function MatchPanel({ hostName, viewerName, hostSignal, viewerSignal, com
         <div className="flex items-center gap-3">
           <div
             className="p-2.5 rounded-lg"
-            style={{ backgroundColor: "rgba(99,102,241,0.15)", color: "#a78bfa" }}
+            style={{ backgroundColor: "rgba(16,185,129,0.15)", color: "#34d399" }}
           >
             <ArrowLeftRight size={20} />
           </div>

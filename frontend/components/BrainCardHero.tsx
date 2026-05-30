@@ -87,7 +87,7 @@ export function BrainCardHero({
       style={{
         backgroundColor: "#0a0a0f",
         backgroundImage:
-          "radial-gradient(circle at 20% 20%, rgba(99,102,241,0.22) 0%, transparent 55%), radial-gradient(circle at 80% 80%, rgba(139,92,246,0.18) 0%, transparent 55%)",
+          "radial-gradient(circle at 20% 20%, rgba(16,185,129,0.22) 0%, transparent 55%), radial-gradient(circle at 80% 80%, rgba(139,92,246,0.18) 0%, transparent 55%)",
         borderColor: "rgba(148,163,184,0.18)",
         padding: compact ? "28px 32px" : "44px 48px",
         color: "white",
@@ -101,7 +101,7 @@ export function BrainCardHero({
             width: compact ? 32 : 40,
             height: compact ? 32 : 40,
             borderRadius: 10,
-            backgroundColor: "#6366f1",
+            backgroundColor: "#10b981",
             fontSize: compact ? 16 : 20,
           }}
         >
@@ -122,7 +122,7 @@ export function BrainCardHero({
           style={{
             width: compact ? 64 : 96,
             height: compact ? 64 : 96,
-            backgroundColor: "#6366f1",
+            backgroundColor: "#10b981",
             fontSize: compact ? 28 : 42,
           }}
         >

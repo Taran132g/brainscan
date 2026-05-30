@@ -75,7 +75,7 @@ export function FounderGlobe({
         backgroundColor="rgba(0,0,0,0)"
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        atmosphereColor="#6366f1"
+        atmosphereColor="#10b981"
         atmosphereAltitude={0.18}
         pointsData={pointsData}
         pointLat="lat"

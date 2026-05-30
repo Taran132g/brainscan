@@ -289,7 +289,7 @@ export default function ProfilePage() {
                 style={{
                   backgroundColor: "#0a0a0f",
                   backgroundImage:
-                    "radial-gradient(circle at 15% 20%, rgba(99,102,241,0.22) 0%, transparent 55%), radial-gradient(circle at 85% 80%, rgba(139,92,246,0.18) 0%, transparent 55%)",
+                    "radial-gradient(circle at 15% 20%, rgba(16,185,129,0.22) 0%, transparent 55%), radial-gradient(circle at 85% 80%, rgba(139,92,246,0.18) 0%, transparent 55%)",
                   borderColor: "rgba(148,163,184,0.18)",
                   padding: "32px 36px",
                   color: "white",
@@ -311,7 +311,7 @@ export default function ProfilePage() {
                 </p>
                 <span
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold"
-                  style={{ backgroundColor: "#6366f1", color: "white" }}
+                  style={{ backgroundColor: "var(--accent)", color: "white" }}
                 >
                   {user ? "Upload your vault" : "Get your brain card"} <ArrowRight size={14} />
                 </span>

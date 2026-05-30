@@ -49,7 +49,7 @@ export function SignalExplainerModal({ signalKey, value, onClose }: Props) {
         style={{
           backgroundColor: "#0a0a0f",
           backgroundImage:
-            "radial-gradient(circle at 20% 0%, rgba(99,102,241,0.18) 0%, transparent 55%), radial-gradient(circle at 80% 100%, rgba(139,92,246,0.14) 0%, transparent 55%)",
+            "radial-gradient(circle at 20% 0%, rgba(16,185,129,0.18) 0%, transparent 55%), radial-gradient(circle at 80% 100%, rgba(139,92,246,0.14) 0%, transparent 55%)",
           borderColor: "rgba(148,163,184,0.2)",
           color: "white",
         }}

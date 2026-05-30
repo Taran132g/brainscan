@@ -231,7 +231,7 @@ export function ConnectLinkedIn() {
             <div className="flex items-center gap-2">
               {bigTech && (
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold"
-                  style={{ backgroundColor: "rgba(99,102,241,0.15)", color: "var(--accent)" }}>
+                  style={{ backgroundColor: "rgba(16,185,129,0.15)", color: "var(--accent)" }}>
                   Big-tech ✓
                 </span>
               )}

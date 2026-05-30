@@ -9,13 +9,16 @@ export default function Home() {
   return (
     <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen">
       {/* Nav */}
-      <nav className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: "var(--border)" }}>
+      <nav
+        className="sticky top-0 z-50 flex items-center justify-between px-8 py-4 border-b backdrop-blur-xl"
+        style={{ borderColor: "var(--border)", backgroundColor: "rgba(6,8,16,0.72)" }}
+      >
         <div className="flex items-center gap-2">
           <Brain size={22} style={{ color: "var(--accent)" }} />
-          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
+          <span className="font-semibold text-lg font-display" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
         </div>
         <SmartCta
-          className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90"
           style={{ backgroundColor: "var(--accent)", color: "white" }}
         >
           Get Started
@@ -23,9 +26,9 @@ export default function Home() {
       </nav>
 
       {/* Hero */}
-      <section className="flex flex-col items-center text-center px-6 pt-20 pb-12 max-w-5xl mx-auto">
+      <section className="flex flex-col items-center text-center px-6 pt-24 pb-16 max-w-5xl mx-auto">
         <div
-          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-8 border"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-8 border animate-in"
           style={{ borderColor: "var(--accent)", color: "var(--accent)", backgroundColor: "var(--accent-glow)" }}
         >
           <Zap size={12} />
@@ -33,21 +36,30 @@ export default function Home() {
         </div>
 
         <h1
-          className="text-5xl md:text-6xl font-bold leading-tight max-w-3xl mb-6"
+          className="text-5xl md:text-7xl font-bold leading-[1.04] max-w-3xl mb-6 animate-in animate-in-1"
           style={{ color: "var(--text-primary)" }}
         >
           Find founders who think{" "}
-          <span style={{ color: "var(--accent)" }}>like you do</span>
+          <span
+            style={{
+              background: "linear-gradient(120deg, var(--accent), var(--accent-hover) 60%, #a78bfa)",
+              WebkitBackgroundClip: "text",
+              backgroundClip: "text",
+              color: "transparent",
+            }}
+          >
+            like you do
+          </span>
         </h1>
 
-        <p className="text-lg max-w-xl mb-10 leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+        <p className="text-lg md:text-xl max-w-xl mb-10 leading-relaxed animate-in animate-in-2" style={{ color: "var(--text-secondary)" }}>
           Upload your Obsidian vault. We analyze how you think, what you&apos;re building, and what you value —
           then match you with co-founders whose brains genuinely complement yours.
         </p>
 
-        <div className="flex items-center gap-4 mb-16">
+        <div className="flex flex-wrap items-center justify-center gap-4 mb-16 animate-in animate-in-3">
           <SmartCta
-            className="flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-opacity hover:opacity-90"
+            className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold hover:opacity-90 glow-accent"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
             Upload Your Vault
@@ -55,7 +67,7 @@ export default function Home() {
           </SmartCta>
           <a
             href="#how-it-works"
-            className="px-6 py-3 rounded-lg font-medium transition-colors"
+            className="px-6 py-3.5 rounded-xl font-medium hover:border-[color:var(--accent)]"
             style={{ color: "var(--text-secondary)", border: "1px solid var(--border)" }}
           >
             How it works
