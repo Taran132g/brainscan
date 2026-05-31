@@ -1,6 +1,8 @@
-import { Brain, Zap, Shield, ArrowRight, Upload, Users, Award, Globe2 } from "lucide-react";
+import { Brain, Zap, Shield, ArrowRight, Upload, Users, Award, Globe2, Download, Sparkles } from "lucide-react";
 import { SmartCta } from "@/components/SmartCta";
 import { FounderGlobe } from "@/components/FounderGlobe";
+import { BrainGridBackground } from "@/components/BrainGridBackground";
+import { BrainCardHero } from "@/components/BrainCardHero";
 import { Reveal } from "@/components/Reveal";
 import { TIER_INFO } from "@/lib/fake-users";
 
@@ -26,14 +28,17 @@ export default function Home() {
         </SmartCta>
       </nav>
 
-      {/* Hero */}
-      <section className="flex flex-col items-center text-center px-6 pt-24 pb-16 max-w-5xl mx-auto">
+      {/* Hero — digital-brain node grid backdrop */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid" aria-hidden />
+        <BrainGridBackground />
+        <section className="relative z-10 flex flex-col items-center text-center px-6 pt-24 pb-16 max-w-5xl mx-auto">
         <div
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-8 border animate-in"
           style={{ borderColor: "var(--accent)", color: "var(--accent)", backgroundColor: "var(--accent-glow)" }}
         >
           <Zap size={12} />
-          Co-founder matching powered by your thinking
+          Co-founder matching powered by how you think
         </div>
 
         <h1
@@ -74,6 +79,26 @@ export default function Home() {
             How it works
           </a>
         </div>
+        </section>
+      </div>
+
+      {/* Mission */}
+      <section className="px-6 py-20 max-w-3xl mx-auto text-center">
+        <Reveal>
+          <div className="text-xs font-medium mb-4 tracking-wider" style={{ color: "var(--accent)" }}>
+            WHY WE EXIST
+          </div>
+          <h2 className="text-2xl md:text-4xl font-bold mb-6 leading-snug" style={{ color: "var(--text-primary)" }}>
+            Startups rarely die from bad ideas. They die from the wrong co-founder.
+          </h2>
+          <p className="text-base md:text-lg leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            A résumé and a &ldquo;looking for a technical co-founder&rdquo; post can&apos;t tell you how
+            someone actually thinks, what they value, or whether you&apos;ll still want to build together
+            at 2am on month nine. We believe the truest signal of fit is already written down — in your
+            notes, your ideas, your <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>digital brain</span>.
+            FindingFounders turns that into a founder profile and matches you on substance, not surface.
+          </p>
+        </Reveal>
       </section>
 
       {/* Globe section */}
@@ -118,36 +143,46 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="px-6 py-20 max-w-4xl mx-auto">
+      <section id="how-it-works" className="px-6 py-20 max-w-6xl mx-auto">
         <Reveal>
-          <h2 className="text-3xl font-bold text-center mb-12" style={{ color: "var(--text-primary)" }}>
-            How it works
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-3" style={{ color: "var(--text-primary)" }}>
+            From digital brain to co-founder
           </h2>
+          <p className="text-sm text-center mb-12 max-w-md mx-auto" style={{ color: "var(--text-secondary)" }}>
+            Four steps. The hardest part — building a second brain — you may already have done.
+          </p>
         </Reveal>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
             {
-              icon: <Upload size={22} style={{ color: "var(--accent)" }} />,
+              icon: <Brain size={22} style={{ color: "var(--accent)" }} />,
               step: "01",
-              title: "Upload your digital brain",
-              desc: "Obsidian, Notion, or any knowledge base as a zip. Your notes stay private — we only store the meaning, not the content.",
+              title: "Build your digital brain",
+              desc: "An Obsidian vault, a Notion workspace — anywhere you already dump your thinking. New to this?",
+              link: { href: "https://learn.nextwork.org/projects/ai-second-brain-claude-code", label: "Set one up in an afternoon" },
             },
             {
-              icon: <Brain size={22} style={{ color: "var(--accent)" }} />,
+              icon: <Download size={22} style={{ color: "var(--accent)" }} />,
               step: "02",
+              title: "Download it as a zip",
+              desc: "Obsidian: compress your vault folder. Notion: Settings → Export → Markdown & CSV. Then drop the zip in.",
+            },
+            {
+              icon: <Sparkles size={22} style={{ color: "var(--accent)" }} />,
+              step: "03",
               title: "Get your brain card",
-              desc: "AI analyzes how you think, what you're building, your values, and ranks you 1–10 as a founder.",
+              desc: "AI reads how you think, what you're building, and what you value — and ranks you 1–10 as a founder.",
             },
             {
               icon: <Users size={22} style={{ color: "var(--accent)" }} />,
-              step: "03",
-              title: "Match by tier and signal",
-              desc: "Find co-founders ranked Visionary, Builder, or Operator who complement your strengths and gaps.",
+              step: "04",
+              title: "Match on substance",
+              desc: "Connect with founders who complement your strengths and gaps. You both opt in, then messaging unlocks.",
             },
           ].map((item, i) => (
-            <Reveal key={item.step} delay={i * 90}>
+            <Reveal key={item.step} delay={i * 80}>
               <div
-                className="p-6 rounded-xl border flex flex-col gap-4 h-full card-hover"
+                className="p-6 rounded-xl border flex flex-col gap-3 h-full card-hover"
                 style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
               >
                 <div className="flex items-center justify-between">
@@ -156,10 +191,63 @@ export default function Home() {
                 </div>
                 <h3 className="font-semibold" style={{ color: "var(--text-primary)" }}>{item.title}</h3>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{item.desc}</p>
+                {item.link && (
+                  <a
+                    href={item.link.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-sm font-medium inline-flex items-center gap-1 mt-auto hover:underline"
+                    style={{ color: "var(--accent)" }}
+                  >
+                    {item.link.label} <ArrowRight size={13} />
+                  </a>
+                )}
               </div>
             </Reveal>
           ))}
         </div>
+      </section>
+
+      {/* Example brain cards */}
+      <section className="px-6 pb-20 max-w-4xl mx-auto">
+        <Reveal>
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 text-xs font-medium mb-3" style={{ color: "var(--accent)" }}>
+              <Sparkles size={14} />
+              EXAMPLE BRAIN CARDS
+            </div>
+            <h2 className="text-2xl md:text-4xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+              This is what we generate
+            </h2>
+            <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
+              Five sections, a founder signal, and a 1–10 rank — inferred from how you actually write, not a
+              form you fill out. Connecting GitHub &amp; LinkedIn verifies you and raises your brain confidence.
+            </p>
+          </div>
+        </Reveal>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <Reveal>
+            <BrainCardHero
+              variant="compact"
+              name="Maya Patel"
+              brainConfidence={88}
+              founderSignal={{ domain_obsession: "high", emotional_stability_signal: "high", shipped_before: true, market_orientation: "b2b", implied_intelligence: "high" }}
+              profile={{ school: "Stanford University", github: "mayap", linkedin: "https://linkedin.com/in/maya" }}
+            />
+          </Reveal>
+          <Reveal delay={90}>
+            <BrainCardHero
+              variant="compact"
+              name="Priya Krishnan"
+              brainConfidence={71}
+              founderSignal={{ domain_obsession: "high", emotional_stability_signal: "medium", shipped_before: true, market_orientation: "infrastructure", implied_intelligence: "high" }}
+              profile={{ school: "UC Berkeley" }}
+            />
+          </Reveal>
+        </div>
+        <p className="text-center text-xs mt-4" style={{ color: "var(--text-muted)" }}>
+          Example founders — your real card and matches appear once you upload your digital brain.
+        </p>
       </section>
 
       {/* Tier system */}
