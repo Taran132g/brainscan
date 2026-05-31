@@ -95,7 +95,7 @@ def upsert_profile_snapshot(
 PROFILE_EDITABLE_FIELDS = {
     "full_name", "age", "city", "willing_to_relocate", "work_authorization",
     "school", "github", "linkedin", "twitter", "website",
-    "gender", "race", "languages",
+    "gender", "race", "languages", "avatar_url",
 }
 
 

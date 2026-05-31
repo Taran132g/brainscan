@@ -141,7 +141,7 @@ def list_connections(me: str) -> list[dict]:
     if other_ids:
         pres = (
             sb.table("profiles")
-            .select("id, full_name, city, school, founder_tier, founder_rank")
+            .select("id, full_name, city, school, founder_tier, founder_rank, avatar_url")
             .in_("id", other_ids)
             .execute()
         )
@@ -158,6 +158,7 @@ def list_connections(me: str) -> list[dict]:
             "match_id": r["id"],
             "other_user_id": other_id,
             "other_name": p.get("full_name") or "Founder",
+            "other_avatar": p.get("avatar_url"),
             "other_city": p.get("city") or "",
             "other_school": p.get("school") or "",
             "other_tier": p.get("founder_tier") or "",

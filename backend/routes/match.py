@@ -66,6 +66,17 @@ async def get_my_matches(
     over_fetch = min(top_k * 5, 50)
     matches = find_matches(user_id, top_k=over_fetch, viewer_signal=viewer_signal)
 
+    # Merge in each candidate's avatar from profiles (current source of truth).
+    ids = [m["user_id"] for m in matches]
+    if ids:
+        try:
+            ares = get_client().table("profiles").select("id, avatar_url").in_("id", ids).execute()
+            avatars = {r["id"]: r.get("avatar_url") for r in (ares.data or [])}
+            for m in matches:
+                m["avatar_url"] = avatars.get(m["user_id"])
+        except Exception:
+            pass
+
     sorted_filtered = filter_and_sort(
         matches,
         user_coords=user_coords,
