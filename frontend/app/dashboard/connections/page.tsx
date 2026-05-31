@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  MessageCircle, Check, X, Clock, Loader2, MapPin, ArrowLeft, Inbox,
+  MessageCircle, Check, X, Clock, Loader2, MapPin, ArrowLeft, Inbox, UserPlus, ArrowRight,
 } from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -168,14 +168,35 @@ function ConnectionsInner() {
             No connections yet
           </h2>
           <p className="text-sm max-w-md mx-auto mb-6" style={{ color: "var(--text-secondary)" }}>
-            Head to your matches and hit Connect on a founder whose thinking complements yours.
+            Messaging unlocks once you both opt in. Here&apos;s how it works:
           </p>
+
+          {/* How the loop works */}
+          <div className="flex items-center justify-center gap-2 mb-7 flex-wrap">
+            {[
+              { icon: <UserPlus size={15} />, label: "You Connect" },
+              { icon: <Check size={15} />, label: "They accept" },
+              { icon: <MessageCircle size={15} />, label: "Chat unlocks" },
+            ].map((s, i) => (
+              <div key={s.label} className="flex items-center gap-2">
+                <div
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-medium"
+                  style={{ borderColor: "var(--border)", color: "var(--text-primary)", backgroundColor: "var(--background)" }}
+                >
+                  <span style={{ color: "var(--accent)" }}>{s.icon}</span>
+                  {s.label}
+                </div>
+                {i < 2 && <ArrowRight size={13} style={{ color: "var(--text-muted)" }} />}
+              </div>
+            ))}
+          </div>
+
           <Link
             href="/dashboard/matches"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            View matches
+            Browse matches <ArrowRight size={14} />
           </Link>
         </div>
       )}

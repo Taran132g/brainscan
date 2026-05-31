@@ -159,7 +159,7 @@ export default function DashboardOverview() {
             Generate your brain card
           </h2>
           <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: "var(--text-secondary)" }}>
-            Upload your Obsidian vault to get a 5-section co-founder compatibility profile based on how you actually think.
+            Upload your digital brain — Obsidian, Notion, or any knowledge base — to get a 5-section co-founder compatibility profile based on how you actually think.
           </p>
           <Link
             href="/upload"

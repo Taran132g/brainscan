@@ -53,8 +53,8 @@ export default function Home() {
         </h1>
 
         <p className="text-lg md:text-xl max-w-xl mb-10 leading-relaxed animate-in animate-in-2" style={{ color: "var(--text-secondary)" }}>
-          Upload your Obsidian vault. We analyze how you think, what you&apos;re building, and what you value —
-          then match you with co-founders whose brains genuinely complement yours.
+          Upload your digital brain — Obsidian, Notion, or any knowledge base. We analyze how you think,
+          what you&apos;re building, and what you value — then match you with co-founders whose brains genuinely complement yours.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 mb-16 animate-in animate-in-3">

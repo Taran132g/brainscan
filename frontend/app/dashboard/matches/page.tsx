@@ -251,16 +251,20 @@ export default function MatchesPage() {
           <h2 className="text-base font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
             No matches yet
           </h2>
-          <p className="text-sm max-w-md mx-auto mb-6" style={{ color: "var(--text-secondary)" }}>
-            Either you haven&apos;t uploaded a brain card yet, or you&apos;re an early adopter. Try uploading
-            your vault, or invite a builder friend so the matching pool grows.
+          <p className="text-sm max-w-md mx-auto mb-5" style={{ color: "var(--text-secondary)" }}>
+            Either you haven&apos;t generated a brain card yet, or you&apos;re an early adopter. Upload your
+            digital brain to unlock matches.
+          </p>
+          <p className="text-xs max-w-md mx-auto mb-7" style={{ color: "var(--text-muted)" }}>
+            Once you have matches: hit <span style={{ color: "var(--accent)" }}>Connect</span> on someone whose
+            thinking complements yours — when you <em>both</em> opt in, in-app messaging unlocks.
           </p>
           <Link
             href="/upload"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            Upload vault <ArrowRight size={13} />
+            Upload your brain <ArrowRight size={13} />
           </Link>
         </div>
       )}

@@ -77,7 +77,7 @@ export default function UploadPage() {
 
   const handleFile = (file: File) => {
     if (!file.name.endsWith(".zip")) {
-      setError("Please upload a .zip file (your Obsidian vault folder, compressed).");
+      setError("Please upload a .zip file — your digital brain (Obsidian vault, Notion export, or markdown folder), compressed.");
       return;
     }
     setError("");
@@ -234,7 +234,9 @@ export default function UploadPage() {
               Upload your vault
             </h1>
             <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
-              We&apos;ll process your Obsidian vault into a brain card so you can find co-founders who think like you.
+              We&apos;ll process your digital brain — an Obsidian vault, a Notion export, or any
+              knowledge base with enough of your thinking — into a brain card so you can find
+              co-founders who think like you.
             </p>
 
             {/* Brain scan counter — at-a-glance */}
@@ -248,12 +250,14 @@ export default function UploadPage() {
               style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
             >
               <h2 className="text-sm font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
-                How to export your Obsidian vault as a zip
+                How to export your digital brain as a zip
               </h2>
               <ol className="flex flex-col gap-3">
                 <Step n={1}>
-                  Find your Obsidian vault folder. By default it&apos;s in your{" "}
-                  <code style={{ color: "var(--accent)" }}>Documents</code> or iCloud Obsidian folder.
+                  <strong>Obsidian:</strong> find your vault folder (usually in{" "}
+                  <code style={{ color: "var(--accent)" }}>Documents</code> or iCloud).{" "}
+                  <strong>Notion:</strong> Settings → Export → <em>Markdown &amp; CSV</em>.{" "}
+                  Any folder of markdown notes works.
                 </Step>
                 <Step n={2}>
                   <span className="flex items-center gap-2">
@@ -285,14 +289,14 @@ export default function UploadPage() {
                   <Github size={18} style={{ color: githubStatus?.connected ? "#10b981" : "#f59e0b" }} />
                   <div>
                     <h2 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                      GitHub {githubStatus?.connected ? "connected" : "required"}
+                      GitHub {githubStatus?.connected ? "connected" : "optional"}
                     </h2>
                     <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>
                       {githubChecking
                         ? "Checking..."
                         : githubStatus?.connected
                         ? `Linked as ${githubStatus.username}${githubStatus.quality ? ` · grade: ${githubStatus.quality}` : ""}`
-                        : "We need verified GitHub data to grade your founder rank before analyzing your vault."}
+                        : "Optional — but unverified founders show lower brain confidence. Connect GitHub (and LinkedIn) to verify your signal and boost credibility."}
                     </p>
                   </div>
                 </div>

@@ -70,7 +70,8 @@ function VerifyContent() {
       return;
     }
     setVerified(true);
-    setTimeout(() => router.push("/dashboard"), 600);
+    // New email signups go through onboarding (it self-skips returning users).
+    setTimeout(() => router.push("/onboarding"), 600);
   };
 
   const handleResend = async () => {

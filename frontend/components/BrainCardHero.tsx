@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ShieldCheck, ShieldAlert } from "lucide-react";
 import { computeRank, TIER_INFO } from "@/lib/founder-rank";
 import type { Tier } from "@/lib/fake-users";
 import { SignalExplainerModal } from "@/components/SignalExplainerModal";
@@ -187,6 +188,34 @@ export function BrainCardHero({
           </span>
         </div>
       )}
+
+      {/* Verification — GitHub + LinkedIn raise credibility; unverified lowers it */}
+      {profile && (() => {
+        const gh = !!profile.github;
+        const li = !!profile.linkedin;
+        const verified = gh && li;
+        const missing = [!gh && "GitHub", !li && "LinkedIn"].filter(Boolean).join(" & ");
+        return (
+          <div
+            className="inline-flex items-center gap-2 mt-3 rounded-full border"
+            style={{
+              padding: compact ? "5px 11px" : "6px 13px",
+              fontSize: compact ? 11 : 12.5,
+              borderColor: verified ? "rgba(16,185,129,0.4)" : "rgba(245,158,11,0.4)",
+              backgroundColor: verified ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
+              color: verified ? "#34d399" : "#fbbf24",
+            }}
+          >
+            {verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+            <span className="font-semibold">{verified ? "Verified founder" : "Unverified"}</span>
+            <span style={{ color: "#94a3b8" }}>
+              {verified
+                ? "GitHub + LinkedIn connected"
+                : `Connect ${missing} to boost credibility`}
+            </span>
+          </div>
+        );
+      })()}
 
       <SignalExplainerModal
         signalKey={explain?.key ?? null}
