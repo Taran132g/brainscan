@@ -5,6 +5,7 @@ import { ShieldCheck, ShieldAlert } from "lucide-react";
 import { computeRank, TIER_INFO } from "@/lib/founder-rank";
 import type { Tier } from "@/lib/fake-users";
 import { SignalExplainerModal } from "@/components/SignalExplainerModal";
+import { Avatar } from "@/components/Avatar";
 import type { SignalKey } from "@/lib/signal-research";
 
 type Grade = "low" | "medium" | "high";
@@ -38,16 +39,6 @@ interface BrainCardHeroProps {
   variant?: "full" | "compact";
 }
 
-function initialsOf(name: string): string {
-  return name
-    .split(" ")
-    .map((w) => w[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
-
 type PillSpec = { key: SignalKey; label: string; value: string };
 
 function pillsFrom(s: FounderSignal | undefined): PillSpec[] {
@@ -78,7 +69,6 @@ export function BrainCardHero({
   const tier: Tier = rankInfo.tier;
   const tierColor = TIER_INFO[tier].color;
   const tierDescription = TIER_INFO[tier].description;
-  const initials = initialsOf(name) || "?";
   const pills = pillsFrom(founderSignal);
   const compact = variant === "compact";
 
@@ -120,27 +110,13 @@ export function BrainCardHero({
 
       {/* Identity row */}
       <div className="flex items-center gap-5 mb-6">
-        {avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={avatarUrl}
-            alt={name}
-            className="rounded-full object-cover flex-shrink-0"
-            style={{ width: compact ? 64 : 96, height: compact ? 64 : 96 }}
-          />
-        ) : (
-          <div
-            className="flex items-center justify-center font-bold rounded-full flex-shrink-0"
-            style={{
-              width: compact ? 64 : 96,
-              height: compact ? 64 : 96,
-              backgroundColor: "#10b981",
-              fontSize: compact ? 28 : 42,
-            }}
-          >
-            {initials}
-          </div>
-        )}
+        <Avatar
+          url={avatarUrl}
+          name={name}
+          size={compact ? 64 : 96}
+          color="#10b981"
+          textColor="#ffffff"
+        />
         <div className="flex flex-col gap-1 min-w-0">
           <div
             className="font-bold leading-tight truncate"
