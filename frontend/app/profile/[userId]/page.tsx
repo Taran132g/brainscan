@@ -30,6 +30,7 @@ type PublicProfileFields = {
   school?: string;
   github?: string;
   linkedin?: string;
+  avatar_url?: string | null;
 };
 
 type VaultQuality = {
@@ -238,6 +239,7 @@ export default function ProfilePage() {
                 profile={
                   publicProfile ?? (user?.user_metadata as PublicProfileFields | undefined)
                 }
+                avatarUrl={publicProfile?.avatar_url ?? (user?.user_metadata?.avatar_url as string | undefined)}
                 variant="full"
               />
             </div>

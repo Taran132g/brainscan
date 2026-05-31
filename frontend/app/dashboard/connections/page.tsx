@@ -9,11 +9,13 @@ import {
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { ChatThread } from "@/components/ChatThread";
+import { Avatar } from "@/components/Avatar";
 
 type Connection = {
   match_id: string;
   other_user_id: string;
   other_name: string;
+  other_avatar?: string | null;
   other_city: string;
   other_school: string;
   other_tier: string;
@@ -28,10 +30,6 @@ const TIER_COLOR: Record<string, string> = {
   Explorer: "#34d399",
   Newcomer: "#94a3b8",
 };
-
-function initialsOf(name: string) {
-  return name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
-}
 
 function ConnectionsInner() {
   const { user } = useAuth();
@@ -104,12 +102,7 @@ function ConnectionsInner() {
           className="flex items-center gap-3 p-4 rounded-xl border"
           style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
         >
-          <div
-            className="w-11 h-11 rounded-full flex items-center justify-center font-bold"
-            style={{ backgroundColor: tierColor, color: "#0a0e17" }}
-          >
-            {initialsOf(active.other_name)}
-          </div>
+          <Avatar url={active.other_avatar} name={active.other_name} size={44} color={tierColor} />
           <div className="flex-1 min-w-0">
             <Link
               href={`/profile/${active.other_user_id}`}
@@ -279,12 +272,7 @@ function ConnectionRow({ c, children }: { c: Connection; children: React.ReactNo
       style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
     >
       <Link href={`/profile/${c.other_user_id}`}>
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-          style={{ backgroundColor: tierColor, color: "#0a0e17" }}
-        >
-          {initialsOf(c.other_name)}
-        </div>
+        <Avatar url={c.other_avatar} name={c.other_name} size={40} color={tierColor} />
       </Link>
       <div className="flex-1 min-w-0">
         <Link

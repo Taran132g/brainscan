@@ -8,9 +8,11 @@ import {
 } from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { Avatar } from "@/components/Avatar";
 
 type Match = {
   user_id: string;
+  avatar_url?: string | null;
   mutual_score: number;
   // Blended compatibility (0-100) computed server-side — the same score the
   // brain-card panel shows, so the two pages always agree.
@@ -385,12 +387,6 @@ function MatchCard({
   onConnect: () => void;
 }) {
   const tierColor = match.tier ? TIER_COLOR[match.tier] ?? "var(--accent)" : "var(--accent)";
-  const initials = match.name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
   const mutualPct = compatibility;
   const roleLabel = match.primary_role
     ? match.primary_role[0].toUpperCase() + match.primary_role.slice(1)
@@ -406,12 +402,7 @@ function MatchCard({
     >
       <Link href={`/profile/${match.user_id}`} className="block transition-all hover:opacity-90">
         <div className="flex items-start gap-4 mb-3">
-          <div
-            className="w-12 h-12 rounded-full flex items-center justify-center text-base font-bold flex-shrink-0"
-            style={{ backgroundColor: tierColor, color: "#0a0e17" }}
-          >
-            {initials || "?"}
-          </div>
+          <Avatar url={match.avatar_url} name={match.name} size={48} color={tierColor} />
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-1">
               <h3 className="text-base font-semibold truncate" style={{ color: "var(--text-primary)" }}>

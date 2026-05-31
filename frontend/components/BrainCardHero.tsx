@@ -34,6 +34,7 @@ interface BrainCardHeroProps {
   founderSignal?: FounderSignal;
   brainConfidence?: number | null;
   profile?: ProfileFields;
+  avatarUrl?: string | null;
   variant?: "full" | "compact";
 }
 
@@ -70,6 +71,7 @@ export function BrainCardHero({
   founderSignal,
   brainConfidence,
   profile,
+  avatarUrl,
   variant = "full",
 }: BrainCardHeroProps) {
   const rankInfo = computeRank(founderSignal, profile);
@@ -118,17 +120,27 @@ export function BrainCardHero({
 
       {/* Identity row */}
       <div className="flex items-center gap-5 mb-6">
-        <div
-          className="flex items-center justify-center font-bold rounded-full"
-          style={{
-            width: compact ? 64 : 96,
-            height: compact ? 64 : 96,
-            backgroundColor: "#10b981",
-            fontSize: compact ? 28 : 42,
-          }}
-        >
-          {initials}
-        </div>
+        {avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={avatarUrl}
+            alt={name}
+            className="rounded-full object-cover flex-shrink-0"
+            style={{ width: compact ? 64 : 96, height: compact ? 64 : 96 }}
+          />
+        ) : (
+          <div
+            className="flex items-center justify-center font-bold rounded-full flex-shrink-0"
+            style={{
+              width: compact ? 64 : 96,
+              height: compact ? 64 : 96,
+              backgroundColor: "#10b981",
+              fontSize: compact ? 28 : 42,
+            }}
+          >
+            {initials}
+          </div>
+        )}
         <div className="flex flex-col gap-1 min-w-0">
           <div
             className="font-bold leading-tight truncate"

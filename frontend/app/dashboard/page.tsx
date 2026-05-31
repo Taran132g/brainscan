@@ -102,6 +102,7 @@ export default function DashboardOverview() {
             founderSignal={brainCard?.founder_signal as Parameters<typeof BrainCardHero>[0]["founderSignal"]}
             brainConfidence={vaultQuality?.score ?? null}
             profile={heroProfile}
+            avatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
             variant="full"
           />
 

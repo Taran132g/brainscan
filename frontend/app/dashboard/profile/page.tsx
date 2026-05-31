@@ -5,6 +5,7 @@ import { Save, CheckCircle, Loader2 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
+import { AvatarUpload } from "@/components/AvatarUpload";
 import { ConnectGitHub } from "@/components/ConnectGitHub";
 import { ConnectLinkedIn } from "@/components/ConnectLinkedIn";
 import { ScanStats } from "@/components/ScanStats";
@@ -101,6 +102,8 @@ export default function ProfilePage() {
       </div>
 
       <section className="flex flex-col gap-5">
+        <AvatarUpload />
+
         <ScanStats />
 
         <Suspense fallback={null}>

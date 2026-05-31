@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { Brain, Home, User, FileArchive, Settings, LogOut, Users, MessageCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { Avatar } from "@/components/Avatar";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: Home, exact: true },
@@ -39,13 +40,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     (user.user_metadata?.full_name as string | undefined) ??
     (user.email as string | undefined) ??
     "";
-
-  const initials = displayName
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
+  const avatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
 
   return (
     <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen flex flex-col">
@@ -57,12 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
         </Link>
         <div className="flex items-center gap-4">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-            style={{ backgroundColor: "var(--accent)", color: "white" }}
-          >
-            {initials || "?"}
-          </div>
+          <Avatar url={avatarUrl} name={displayName || "You"} size={36} textColor="white" />
           <span className="text-sm hidden sm:block" style={{ color: "var(--text-secondary)" }}>
             {displayName}
           </span>
