@@ -24,7 +24,7 @@ export function BrainGridBackground() {
     let w = 0, h = 0, raf = 0;
     type Node = { x: number; y: number; vx: number; vy: number };
     let nodes: Node[] = [];
-    const LINK_DIST = 140;
+    const LINK_DIST = 165;
 
     function seed() {
       const parent = cv.parentElement;
@@ -36,7 +36,7 @@ export function BrainGridBackground() {
       cv.style.width = w + "px";
       cv.style.height = h + "px";
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const count = Math.max(20, Math.min(70, Math.floor((w * h) / 20000)));
+      const count = Math.max(16, Math.min(52, Math.floor((w * h) / 26000)));
       nodes = Array.from({ length: count }, () => ({
         x: Math.random() * w,
         y: Math.random() * h,
@@ -54,8 +54,8 @@ export function BrainGridBackground() {
           const dx = a.x - b.x, dy = a.y - b.y;
           const d = Math.hypot(dx, dy);
           if (d < LINK_DIST) {
-            ctx.strokeStyle = `rgba(16,185,129,${(1 - d / LINK_DIST) * 0.18})`;
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = `rgba(16,185,129,${(1 - d / LINK_DIST) * 0.32})`;
+            ctx.lineWidth = 1.3;
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
@@ -64,9 +64,14 @@ export function BrainGridBackground() {
         }
       }
       for (const n of nodes) {
-        ctx.fillStyle = "rgba(52,211,153,0.55)";
+        // Soft glow halo + solid core so nodes read clearly against the dark grid
+        ctx.fillStyle = "rgba(16,185,129,0.18)";
         ctx.beginPath();
-        ctx.arc(n.x, n.y, 1.7, 0, Math.PI * 2);
+        ctx.arc(n.x, n.y, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "rgba(74,222,168,0.95)";
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 3, 0, Math.PI * 2);
         ctx.fill();
         if (!reduced) {
           n.x += n.vx;

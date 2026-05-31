@@ -1,6 +1,5 @@
-import { Brain, Zap, Shield, ArrowRight, Upload, Users, Award, Globe2, Download, Sparkles } from "lucide-react";
+import { Brain, Zap, Shield, ArrowRight, Users, Award, Download, Sparkles } from "lucide-react";
 import { SmartCta } from "@/components/SmartCta";
-import { FounderGlobe } from "@/components/FounderGlobe";
 import { BrainGridBackground } from "@/components/BrainGridBackground";
 import { BrainCardHero } from "@/components/BrainCardHero";
 import { Reveal } from "@/components/Reveal";
@@ -99,47 +98,6 @@ export default function Home() {
             FindingFounders turns that into a founder profile and matches you on substance, not surface.
           </p>
         </Reveal>
-      </section>
-
-      {/* Globe section */}
-      <section className="px-6 pb-20 max-w-6xl mx-auto">
-        <Reveal>
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 text-xs font-medium mb-3" style={{ color: "var(--accent)" }}>
-              <Globe2 size={14} />
-              FOUNDERS WORLDWIDE
-            </div>
-            <h2 className="text-2xl md:text-4xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-              A growing network of builders
-            </h2>
-            <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-              Founders from San Francisco to Bangalore to Lagos — each one with a brain card that captures how they actually think.
-            </p>
-          </div>
-        </Reveal>
-
-        <Reveal delay={80}>
-          <div
-            className="rounded-2xl border overflow-hidden"
-            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
-          >
-            <FounderGlobe height={520} interactive={false} />
-          </div>
-        </Reveal>
-
-        {/* Tier legend */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mt-6">
-          {TIER_ORDER.map((tier) => (
-            <div
-              key={tier}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs border"
-              style={{ borderColor: TIER_INFO[tier].color, backgroundColor: TIER_INFO[tier].bg }}
-            >
-              <span className="w-2 h-2 rounded-full" style={{ backgroundColor: TIER_INFO[tier].color }} />
-              <span style={{ color: TIER_INFO[tier].color, fontWeight: 600 }}>{tier}</span>
-            </div>
-          ))}
-        </div>
       </section>
 
       {/* How it works */}
