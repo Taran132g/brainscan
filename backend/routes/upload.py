@@ -25,27 +25,20 @@ async def upload_vault(
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Upload must be a .zip file")
 
-    # Gate 1: GitHub must be connected. We require this BEFORE the paywall so
-    # we don't charge users only to bounce them on a missing requirement.
+    # GitHub/LinkedIn are no longer hard gates — they're *verification* signals.
+    # We still read them: connected profiles enrich the brain card and earn higher
+    # brain confidence; unverified profiles are allowed but lose credibility (below).
     profile_res = (
         get_client()
         .table("profiles")
-        .select("github_connected, github_data, github_quality")
+        .select("github_connected, github_data, github_quality, linkedin, linkedin_connected")
         .eq("id", user_id)
         .limit(1)
         .execute()
     )
     profile_row = (profile_res.data or [{}])[0]
-    if not profile_row.get("github_connected"):
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "code": "github_required",
-                "message": "Connect your GitHub before uploading — we need it to verify your founder signal.",
-            },
-        )
 
-    # Gate 2: Paywall — raises 402 if the user can't upload.
+    # Paywall — raises 402 if the user can't upload.
     # Charged BEFORE any heavy work so we never burn Claude tokens on a denied request.
     payment_info = check_upload_allowed(user_id)
 
@@ -111,10 +104,19 @@ async def upload_vault(
         github_username=github_username,
         linkedin_url=linkedin_url,
     )
+    # Verification → brain confidence. The raw vault quality is preserved in the
+    # upload record above; the *profile* brain_confidence is the credibility a
+    # viewer should place in this card, so unverified founders (no GitHub /
+    # LinkedIn) take a penalty. Connecting them is the way to earn it back.
+    github_verified = bool(profile_row.get("github_connected"))
+    linkedin_verified = bool(profile_row.get("linkedin_connected")) or bool(linkedin_url) or bool(profile_row.get("linkedin"))
+    verification_penalty = (0 if github_verified else 15) + (0 if linkedin_verified else 10)
+    effective_confidence = max(30, quality["quality_score"] - verification_penalty)
+
     upsert_profile_snapshot(
         user_id=user_id,
         brain_card=brain_card,
-        quality_score=quality["quality_score"],
+        quality_score=effective_confidence,
         github_username=github_username,
         linkedin_url=linkedin_url,
     )
