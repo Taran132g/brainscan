@@ -98,8 +98,14 @@ export default function OnboardingPage() {
           <Brain size={20} style={{ color: "var(--accent)" }} />
           <span className="font-semibold font-display" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
         </div>
-        <button onClick={() => finish(true)} className="text-xs" style={{ color: "var(--text-secondary)" }}>
-          Skip for now
+        <button
+          onClick={() => finish(true)}
+          disabled={saving}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-medium border hover:border-[color:var(--accent)] disabled:opacity-50"
+          style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+          title="Skip the questions and upload your digital brain now"
+        >
+          Skip — I have a digital brain <ArrowRight size={13} />
         </button>
       </div>
 
