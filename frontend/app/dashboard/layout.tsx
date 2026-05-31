@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         style={{ borderColor: "var(--border)" }}>
         <Link href="/dashboard" className="flex items-center gap-2">
           <Brain size={22} style={{ color: "var(--accent)" }} />
-          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
+          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>BrainScan</span>
         </Link>
         <div className="flex items-center gap-4">
           <Avatar url={avatarUrl} name={displayName || "You"} size={36} textColor="white" />

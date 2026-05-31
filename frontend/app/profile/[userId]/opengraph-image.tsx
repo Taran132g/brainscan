@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { API_BASE_URL } from "@/lib/api";
 
-export const alt = "FindingFounders Brain Card";
+export const alt = "Brain Card · BrainScan";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -122,9 +122,9 @@ export default async function Image({ params }: { params: Promise<{ userId: stri
               fontWeight: 700,
             }}
           >
-            FF
+            BS
           </div>
-          <div style={{ fontSize: 28, fontWeight: 600 }}>FindingFounders</div>
+          <div style={{ fontSize: 28, fontWeight: 600 }}>BrainScan</div>
           <div style={{ marginLeft: "auto", fontSize: 22, color: "#94a3b8" }}>Brain Card</div>
         </div>
 

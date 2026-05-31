@@ -96,7 +96,7 @@ export default function OnboardingPage() {
       <div className="flex items-center justify-between px-6 py-5">
         <div className="flex items-center gap-2">
           <Brain size={20} style={{ color: "var(--accent)" }} />
-          <span className="font-semibold font-display" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
+          <span className="font-semibold font-display" style={{ color: "var(--text-primary)" }}>BrainScan</span>
         </div>
         <button
           onClick={() => finish(true)}

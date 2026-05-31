@@ -91,7 +91,7 @@ function VerifyContent() {
       <nav className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center gap-2">
           <Brain size={22} style={{ color: "var(--accent)" }} />
-          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
+          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>BrainScan</span>
         </div>
         <Link href="/auth" className="flex items-center gap-1 text-sm" style={{ color: "var(--text-secondary)" }}>
           <ArrowLeft size={14} /> Back

@@ -205,7 +205,7 @@ export default function UploadPage() {
       <nav className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center gap-2">
           <Brain size={22} style={{ color: "var(--accent)" }} />
-          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
+          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>BrainScan</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs hidden sm:block" style={{ color: "var(--text-secondary)" }}>

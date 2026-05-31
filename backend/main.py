@@ -11,7 +11,7 @@ from routes.payment import router as payment_router
 from routes.github import router as github_router
 from routes.linkedin import router as linkedin_router
 
-app = FastAPI(title="FindingFounders API", version="0.1.0")
+app = FastAPI(title="BrainScan API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

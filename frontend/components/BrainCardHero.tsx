@@ -98,10 +98,10 @@ export function BrainCardHero({
             fontSize: compact ? 16 : 20,
           }}
         >
-          FF
+          BS
         </div>
         <div className="font-semibold" style={{ fontSize: compact ? 16 : 18 }}>
-          FindingFounders
+          BrainScan
         </div>
         <div className="ml-auto" style={{ color: "#94a3b8", fontSize: compact ? 13 : 14 }}>
           Brain Card

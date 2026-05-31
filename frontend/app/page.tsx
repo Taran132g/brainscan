@@ -17,7 +17,7 @@ export default function Home() {
       >
         <div className="flex items-center gap-2">
           <Brain size={22} style={{ color: "var(--accent)" }} />
-          <span className="font-semibold text-lg font-display" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
+          <span className="font-semibold text-lg font-display" style={{ color: "var(--text-primary)" }}>BrainScan</span>
         </div>
         <SmartCta
           className="px-4 py-2 rounded-lg text-sm font-semibold hover:opacity-90"
@@ -95,7 +95,7 @@ export default function Home() {
             someone actually thinks, what they value, or whether you&apos;ll still want to build together
             at 2am on month nine. We believe the truest signal of fit is already written down — in your
             notes, your ideas, your <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>digital brain</span>.
-            FindingFounders turns that into a founder profile and matches you on substance, not surface.
+            BrainScan turns that into a founder profile and matches you on substance, not surface.
           </p>
         </Reveal>
       </section>
@@ -303,7 +303,7 @@ export default function Home() {
       </section>
 
       <footer className="px-8 py-6 border-t text-center text-xs" style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}>
-        FindingFounders © 2026
+        BrainScan © 2026
       </footer>
     </div>
   );

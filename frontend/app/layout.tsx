@@ -16,7 +16,7 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "FindingFounders — Match by how you think",
+  title: "BrainScan — Match by how you think",
   description: "Co-founder matching powered by your personal knowledge base.",
 };
 

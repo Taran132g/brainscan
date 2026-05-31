@@ -16,8 +16,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     // Fall through to generic copy — OG image route handles missing data on its own.
   }
 
-  const title = `${name} — FindingFounders Brain Card`;
-  const description = `${name}'s co-founder brain card on FindingFounders. Built from their own writing.`;
+  const title = `${name} — Brain Card · BrainScan`;
+  const description = `${name}'s co-founder brain card on BrainScan. Built from their own writing.`;
 
   return {
     title,

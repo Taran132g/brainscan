@@ -69,7 +69,7 @@ export default function ProfilePage() {
     const baseUrl =
       (process.env.NEXT_PUBLIC_APP_URL as string | undefined) || window.location.origin;
     const url = `${baseUrl}/profile/${userId}`;
-    const title = `${userName || "My"} FindingFounders Brain Card`;
+    const title = `${userName || "My"} Brain Card · BrainScan`;
 
     // Only use the OS share sheet on touch devices — desktop Chrome's
     // navigator.share often opens nothing on non-HTTPS origins.
@@ -161,7 +161,7 @@ export default function ProfilePage() {
       <nav className="flex items-center justify-between px-8 py-5 border-b" style={{ borderColor: "var(--border)" }}>
         <div className="flex items-center gap-2">
           <Brain size={22} style={{ color: "var(--accent)" }} />
-          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>FindingFounders</span>
+          <span className="font-semibold text-lg" style={{ color: "var(--text-primary)" }}>BrainScan</span>
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -300,7 +300,7 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-3 mb-3" style={{ color: "#cbd5e1" }}>
                   <Brain size={18} style={{ color: "#a78bfa" }} />
                   <span className="text-xs uppercase tracking-wider font-semibold">
-                    Built with FindingFounders
+                    Built with BrainScan
                   </span>
                 </div>
                 <h3 className="text-2xl font-bold mb-2">
