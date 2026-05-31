@@ -84,6 +84,16 @@ a, button, [role="button"], input, select, textarea, label, summary {
 /* Subtle accent glow utility for hero/CTA surfaces */
 .glow-accent { box-shadow: var(--shadow-glow); }
 
+/* Card hover-lift — gives surfaces depth + responsiveness on hover */
+.card-hover {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
+  border-color: var(--border-strong);
+}
+
 /* Respect reduced motion (skill: §1 reduced-motion) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

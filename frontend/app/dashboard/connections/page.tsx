@@ -275,7 +275,7 @@ function ConnectionRow({ c, children }: { c: Connection; children: React.ReactNo
   const tierColor = TIER_COLOR[c.other_tier] ?? "var(--accent)";
   return (
     <div
-      className="flex items-center gap-3 p-3 rounded-xl border"
+      className="flex items-center gap-3 p-3 rounded-xl border card-hover"
       style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
     >
       <Link href={`/profile/${c.other_user_id}`}>

@@ -201,7 +201,7 @@ function ActionCard({
 }) {
   const card = (
     <div
-      className="p-5 rounded-xl border flex flex-col gap-2 transition-opacity h-full"
+      className={`p-5 rounded-xl border flex flex-col gap-2 h-full ${disabled ? "" : "card-hover"}`}
       style={{
         backgroundColor: "var(--surface)",
         borderColor: "var(--border)",

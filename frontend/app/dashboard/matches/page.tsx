@@ -398,7 +398,7 @@ function MatchCard({
 
   return (
     <div
-      className="flex flex-col p-5 rounded-xl border"
+      className="flex flex-col p-5 rounded-xl border card-hover"
       style={{
         backgroundColor: "var(--surface)",
         borderColor: "var(--border)",
