@@ -125,6 +125,60 @@ def update_profile_fields(user_id: str, fields: dict) -> dict:
     return clean
 
 
+def record_scan(user_id: str, domain: str, sections: dict, signal: dict) -> None:
+    """Append a scan result to the append-only scans table (soft-fails)."""
+    try:
+        get_client().table("scans").insert({
+            "user_id": user_id,
+            "domain": domain,
+            "sections": sections,
+            "signal": signal,
+        }).execute()
+    except Exception as e:
+        print(f"[db] record_scan failed: {e}")
+
+
+def get_latest_scans(user_id: str) -> dict:
+    """Latest scan per domain for a user → {domain: {sections, signal, created_at}}."""
+    try:
+        res = (
+            get_client()
+            .table("scans")
+            .select("domain, sections, signal, created_at")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .execute()
+        )
+    except Exception as e:
+        print(f"[db] get_latest_scans failed: {e}")
+        return {}
+    latest: dict = {}
+    for row in res.data or []:
+        d = row.get("domain")
+        if d and d not in latest:
+            latest[d] = row
+    return latest
+
+
+def get_scan_timeline(user_id: str, domain: str, limit: int = 12) -> list:
+    """Most-recent-first history of a user's scans for one domain."""
+    try:
+        res = (
+            get_client()
+            .table("scans")
+            .select("sections, signal, created_at")
+            .eq("user_id", user_id)
+            .eq("domain", domain)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+        return res.data or []
+    except Exception as e:
+        print(f"[db] get_scan_timeline failed: {e}")
+        return []
+
+
 def compute_and_persist_rank(user_id: str) -> dict:
     """
     Compute the server-side founder rank for a user using current profile data

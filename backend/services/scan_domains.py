@@ -138,9 +138,197 @@ FOUNDER = ScanDomain(
 )
 
 
-# The registry. Adding a domain = one entry here (career, relationships, …).
+# ============================================================
+# CAREER — how someone works, where they're headed
+# ============================================================
+
+_CAREER_SYSTEM = """You are analyzing someone's personal knowledge base — their notes, projects, and reflections — to create a "career card": a profile of how they work and where they're headed.
+
+Rules:
+- Be specific and evidence-based. Only claim things supported by the notes.
+- Do not invent or generalize beyond what is shown.
+- Each section should be 3-5 sentences. Direct, not generic.
+- This is a working-style profile, not a resume."""
+
+_CAREER_USER_PROMPT = """Here are excerpts from this person's knowledge base:
+
+<notes>
+{notes}
+</notes>
+
+{external_signals_block}Return your analysis by calling the `submit_career_card` tool with these sections:
+- professional_identity: Their domain, level, and the trajectory their work suggests.
+- how_they_execute: How they actually get things done — planning vs shipping, depth vs speed.
+- strengths: What they're demonstrably strong at, grounded in the notes.
+- growth_areas: Gaps or blind spots the writing reveals, stated constructively.
+- ideal_next_role: The kind of role / environment that would fit and stretch them.
+- career_signal: Calibrated signals about their working style:
+  - execution_bias: ship | plan | balanced
+  - risk_tolerance: low | medium | high
+  - leadership_lean: ic | lead | either (individual contributor vs leading others)
+  - autonomy_need: low | medium | high
+  - growth_drive: low | medium | high"""
+
+_CAREER_TOOL = {
+    "name": "submit_career_card",
+    "description": "Submit the structured career card analysis.",
+    "input_schema": {
+        "type": "object",
+        "required": [
+            "professional_identity", "how_they_execute", "strengths",
+            "growth_areas", "ideal_next_role", "career_signal",
+        ],
+        "properties": {
+            "professional_identity": {"type": "string"},
+            "how_they_execute": {"type": "string"},
+            "strengths": {"type": "string"},
+            "growth_areas": {"type": "string"},
+            "ideal_next_role": {"type": "string"},
+            "career_signal": {
+                "type": "object",
+                "required": [
+                    "execution_bias", "risk_tolerance", "leadership_lean",
+                    "autonomy_need", "growth_drive",
+                ],
+                "properties": {
+                    "execution_bias": {"enum": ["ship", "plan", "balanced"]},
+                    "risk_tolerance": {"enum": ["low", "medium", "high"]},
+                    "leadership_lean": {"enum": ["ic", "lead", "either"]},
+                    "autonomy_need": {"enum": ["low", "medium", "high"]},
+                    "growth_drive": {"enum": ["low", "medium", "high"]},
+                },
+            },
+        },
+    },
+}
+
+CAREER = ScanDomain(
+    id="career",
+    retrieval_queries={
+        "professional_identity": "career, job, role, profession, industry, expertise, seniority, what they do for work",
+        "how_they_execute": "how they work, planning, shipping, execution style, productivity, getting things done, process",
+        "strengths": "strengths, skills, what they are good at, accomplishments, wins, talents",
+        "growth_areas": "weaknesses, struggles, gaps, things they want to improve, blind spots, frustrations",
+        "ideal_next_role": "career goals, ambitions, what they want next, ideal job, environment they thrive in",
+        "career_signal": "risk tolerance, leadership, autonomy, ambition, drive, working independently vs leading teams",
+    },
+    system_prompt=_CAREER_SYSTEM,
+    user_prompt_template=_CAREER_USER_PROMPT,
+    tool_name="submit_career_card",
+    tool_schema=_CAREER_TOOL,
+    section_titles={
+        "professional_identity": "Professional Identity",
+        "how_they_execute": "How They Execute",
+        "strengths": "Strengths",
+        "growth_areas": "Growth Areas",
+        "ideal_next_role": "Ideal Next Role",
+    },
+    signal_key="career_signal",
+    sensitivity="low",
+)
+
+
+# ============================================================
+# RELATIONSHIPS — how someone connects (sensitive, non-clinical)
+# ============================================================
+
+_REL_DISCLAIMER = (
+    "A reflective, non-clinical sketch generated from your own writing — not a "
+    "psychological assessment, diagnosis, or advice."
+)
+
+_REL_SYSTEM = f"""You are analyzing someone's personal knowledge base — their notes, journals, and reflections — to create a gentle, non-clinical "relationships card": how they tend to connect with others.
+
+Rules:
+- Be warm, specific, and evidence-based. Only reflect what the notes show.
+- Do NOT diagnose, label with clinical terms, or give advice.
+- This is a self-reflection mirror, not an assessment. {_REL_DISCLAIMER}
+- Each section should be 3-5 sentences. Kind and honest, not generic."""
+
+_REL_USER_PROMPT = """Here are excerpts from this person's knowledge base:
+
+<notes>
+{notes}
+</notes>
+
+{external_signals_block}Return your analysis by calling the `submit_relationship_card` tool with these sections:
+- how_they_connect: How they tend to relate to and bond with others.
+- communication_style: How they express themselves and listen.
+- what_they_value: What they seem to care about most in their relationships.
+- patterns: Recurring relational patterns the writing gently suggests (non-judgmental).
+- what_they_need: What tends to help them feel understood and supported.
+- relationship_signal: Calibrated, non-clinical tendencies:
+  - communication_style: direct | diplomatic | reserved
+  - conflict_approach: avoidant | engaging | collaborative
+  - emotional_openness: low | medium | high
+  - support_style: practical | emotional | both
+  - independence: low | medium | high"""
+
+_REL_TOOL = {
+    "name": "submit_relationship_card",
+    "description": "Submit the structured, non-clinical relationships card.",
+    "input_schema": {
+        "type": "object",
+        "required": [
+            "how_they_connect", "communication_style", "what_they_value",
+            "patterns", "what_they_need", "relationship_signal",
+        ],
+        "properties": {
+            "how_they_connect": {"type": "string"},
+            "communication_style": {"type": "string"},
+            "what_they_value": {"type": "string"},
+            "patterns": {"type": "string"},
+            "what_they_need": {"type": "string"},
+            "relationship_signal": {
+                "type": "object",
+                "required": [
+                    "communication_style", "conflict_approach",
+                    "emotional_openness", "support_style", "independence",
+                ],
+                "properties": {
+                    "communication_style": {"enum": ["direct", "diplomatic", "reserved"]},
+                    "conflict_approach": {"enum": ["avoidant", "engaging", "collaborative"]},
+                    "emotional_openness": {"enum": ["low", "medium", "high"]},
+                    "support_style": {"enum": ["practical", "emotional", "both"]},
+                    "independence": {"enum": ["low", "medium", "high"]},
+                },
+            },
+        },
+    },
+}
+
+RELATIONSHIPS = ScanDomain(
+    id="relationships",
+    retrieval_queries={
+        "how_they_connect": "relationships, friends, family, partner, connecting with people, bonding, social life",
+        "communication_style": "communication, expressing feelings, listening, conversations, how they talk to people",
+        "what_they_value": "what they value in people, loyalty, trust, honesty, what matters in relationships",
+        "patterns": "recurring patterns, conflict, distance, closeness, how relationships tend to go",
+        "what_they_need": "what they need from others, support, feeling understood, what helps them",
+        "relationship_signal": "openness, conflict, independence, emotional expression, how they handle closeness and distance",
+    },
+    system_prompt=_REL_SYSTEM,
+    user_prompt_template=_REL_USER_PROMPT,
+    tool_name="submit_relationship_card",
+    tool_schema=_REL_TOOL,
+    section_titles={
+        "how_they_connect": "How They Connect",
+        "communication_style": "Communication Style",
+        "what_they_value": "What They Value",
+        "patterns": "Patterns",
+        "what_they_need": "What They Need",
+    },
+    signal_key="relationship_signal",
+    sensitivity="medium",
+    disclaimer=_REL_DISCLAIMER,
+)
+
+
+# The registry. Adding a domain = one entry here.
 DOMAINS: dict[str, ScanDomain] = {
     "founder": FOUNDER,
+    "career": CAREER,
+    "relationships": RELATIONSHIPS,
 }
 
 DEFAULT_DOMAIN = "founder"
