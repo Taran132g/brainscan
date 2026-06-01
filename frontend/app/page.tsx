@@ -131,15 +131,15 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Video wall — people on building a second brain */}
-      <section className="px-6 py-20 max-w-6xl mx-auto">
+      {/* Video wall — short-form clips, rendered vertical like the PAIS content dashboard */}
+      <section className="px-6 py-20 max-w-5xl mx-auto">
         <Reveal>
           <h2 className="text-2xl md:text-4xl font-bold text-center mb-3" style={{ color: "var(--text-primary)" }}>
-            A second brain, in their words
+            See BrainScan in action
           </h2>
           <p className="text-sm text-center mb-12 max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-            People are already turning their notes into a second brain. Watch how — then let BrainScan
-            read yours into a single Brain Card.
+            A few seconds on what it&apos;s like to turn your digital brain into a Brain Card — and meet the
+            people behind the other cards.
           </p>
         </Reveal>
         <VideoWall />

@@ -5,51 +5,41 @@ import { Play } from "lucide-react";
 import { Reveal } from "@/components/Reveal";
 
 /**
- * The video wall on the landing page.
+ * Vertical short-form video wall on the landing page — rendered like the PAIS
+ * content-workflow dashboard (9:16 cards, lazy click-to-play).
  *
- * 👉 To swap these, just edit the VIDEOS array below — paste any YouTube URL
- * (watch, youtu.be, or embed form) or a bare 11-character video ID into `url`.
- * The thumbnail + lazy embed are derived automatically; nothing else to touch.
+ * 👉 To swap these, just edit the VIDEOS array — paste any YouTube URL
+ * (shorts/watch/youtu.be/embed) or a bare 11-char id into `url`. The thumbnail
+ * + embed are derived automatically. `caption` is the small label below it.
  */
-const VIDEOS: { url: string; title: string; tag: string }[] = [
-  {
-    url: "https://www.youtube.com/watch?v=WqKluXIra70",
-    title: "Obsidian as a second brain — the full walkthrough",
-    tag: "Building a second brain",
-  },
-  {
-    url: "https://www.youtube.com/watch?v=JtBOl-eFHZc",
-    title: "Your second brain in Obsidian, step by step",
-    tag: "Getting started",
-  },
-  {
-    url: "https://www.youtube.com/watch?v=pftNwHmNXzs",
-    title: "Organize, plan, and execute ideas with Obsidian",
-    tag: "Why it works",
-  },
+const VIDEOS: { url: string; caption: string }[] = [
+  { url: "https://www.youtube.com/shorts/yJK5GueSHmU", caption: "BrainScan in a minute" },
+  { url: "https://www.youtube.com/shorts/x6Nfbd5Pa4A", caption: "Your notes, read back to you" },
+  { url: "https://www.youtube.com/shorts/pZqGHxtm6FM", caption: "Meet people on the real signal" },
 ];
 
-/** Pull the 11-char YouTube id out of any URL form, or accept a bare id. */
+/** Pull the 11-char YouTube id out of any URL form (incl. /shorts/), or accept a bare id. */
 function youtubeId(input: string): string {
-  const m = input.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([\w-]{11})/);
+  const m = input.match(/(?:shorts\/|v=|youtu\.be\/|embed\/)([\w-]{11})/);
   return m ? m[1] : input;
 }
 
-function VideoCard({ url, title, tag }: { url: string; title: string; tag: string }) {
+function ShortCard({ url, caption }: { url: string; caption: string }) {
   const [playing, setPlaying] = useState(false);
   const id = youtubeId(url);
 
   return (
     <div
-      className="rounded-2xl border overflow-hidden card-hover flex flex-col"
+      className="w-full max-w-[270px] overflow-hidden rounded-2xl border card-hover"
       style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
     >
-      <div className="relative aspect-video bg-black">
+      {/* 9:16 vertical player, matching the PAIS render cards */}
+      <div className="relative aspect-[9/16] bg-black">
         {playing ? (
           <iframe
             className="absolute inset-0 h-full w-full"
-            src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`}
-            title={title}
+            src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0&playsinline=1`}
+            title={caption}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
             allowFullScreen
           />
@@ -57,19 +47,19 @@ function VideoCard({ url, title, tag }: { url: string; title: string; tag: strin
           <button
             type="button"
             onClick={() => setPlaying(true)}
-            aria-label={`Play: ${title}`}
+            aria-label={`Play: ${caption}`}
             className="group absolute inset-0 h-full w-full"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
-              alt={title}
+              src={`https://i.ytimg.com/vi/${id}/hq720.jpg`}
+              alt={caption}
               loading="lazy"
               className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             <span
               className="absolute inset-0"
-              style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.45))" }}
+              style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.10), rgba(0,0,0,0.40))" }}
             />
             <span
               className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full transition-transform duration-300 group-hover:scale-110 glow-accent"
@@ -80,13 +70,10 @@ function VideoCard({ url, title, tag }: { url: string; title: string; tag: strin
           </button>
         )}
       </div>
-      <div className="p-4">
-        <div className="text-xs font-medium mb-1.5" style={{ color: "var(--accent)" }}>
-          {tag}
-        </div>
-        <h3 className="text-sm font-semibold leading-snug" style={{ color: "var(--text-primary)" }}>
-          {title}
-        </h3>
+      <div className="px-3.5 py-3 text-center">
+        <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+          {caption}
+        </span>
       </div>
     </div>
   );
@@ -94,10 +81,10 @@ function VideoCard({ url, title, tag }: { url: string; title: string; tag: strin
 
 export function VideoWall() {
   return (
-    <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+    <div className="flex flex-wrap justify-center gap-5">
       {VIDEOS.map((v, i) => (
-        <Reveal key={v.url} delay={i * 90} className="h-full">
-          <VideoCard {...v} />
+        <Reveal key={v.url} delay={i * 90}>
+          <ShortCard {...v} />
         </Reveal>
       ))}
     </div>
