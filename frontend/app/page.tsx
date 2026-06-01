@@ -3,6 +3,7 @@ import { SmartCta } from "@/components/SmartCta";
 import { BrainGridBackground } from "@/components/BrainGridBackground";
 import { ScanCard } from "@/components/ScanCard";
 import { Reveal } from "@/components/Reveal";
+import { VideoWall } from "@/components/VideoWall";
 
 export default function Home() {
   return (
@@ -130,23 +131,18 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Mission */}
-      <section className="px-6 py-20 max-w-3xl mx-auto text-center">
+      {/* Video wall — people on building a second brain */}
+      <section className="px-6 py-20 max-w-6xl mx-auto">
         <Reveal>
-          <div className="text-xs font-medium mb-4 tracking-wider" style={{ color: "var(--accent)" }}>
-            WHY WE EXIST
-          </div>
-          <h2 className="text-2xl md:text-4xl font-bold mb-6 leading-snug" style={{ color: "var(--text-primary)" }}>
-            A quiz can&apos;t tell you who you are. Your own words can.
+          <h2 className="text-2xl md:text-4xl font-bold text-center mb-3" style={{ color: "var(--text-primary)" }}>
+            A second brain, in their words
           </h2>
-          <p className="text-base md:text-lg leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            A personality test is 20 questions. A résumé is a highlight reel. But you&apos;ve already written
-            thousands of words about how you think, what you&apos;re building, and what you care about.
-            BrainScan reads your <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>digital brain</span> and
-            reflects it back — clearly, across your career, your relationships, and how you think — so you
-            meet people on the real signal, not the surface.
+          <p className="text-sm text-center mb-12 max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
+            People are already turning their notes into a second brain. Watch how — then let BrainScan
+            read yours into a single Brain Card.
           </p>
         </Reveal>
+        <VideoWall />
       </section>
 
       {/* How it works */}
@@ -236,12 +232,12 @@ export default function Home() {
           <ScanCard
             domain="brainscan"
             sections={{
-              "Who They Are": "A builder and writer who thinks in systems and learns in public. Spent the last few years going deep on AI and the craft of shipping.",
-              "How They Think": "First-principles and fast — prototypes ideas to understand them, trusts evidence over consensus, allergic to hand-waving.",
-              "Career & Ambition": "Drawn to ambitious, early-stage work where taste and execution both matter; wants to build things people actually use.",
-              "How They Connect": "Loyal and direct; bonds over ideas and shared obsessions rather than small talk. A few deep relationships over many shallow ones.",
-              "Values & What Drives Them": "Honesty, momentum, and craft. Motivated by making something real and by people who push back.",
-              "What They're Looking For": "People who trade ideas at 2am, builders, and friends who show up — similar minds and ones who fill the gaps.",
+              "Who They Are": "A builder and obsessive note-taker who thinks on the page. Their vault is years of half-finished ideas, book margins, and 2am voice memos — the raw material of someone learning in public and in private at once.",
+              "How They Think": "First-principles and fast. They prototype ideas to understand them, reason from evidence over consensus, and circle back to the same handful of questions across notebooks — a sign of where their real curiosity lives.",
+              "Career & Ambition": "Drawn to ambitious, early-stage work where taste and execution both matter. Their notes track a quiet through-line: build things people actually use, and get closer to work that feels like their own.",
+              "How They Connect": "Loyal and direct; bonds over ideas and shared obsessions, not small talk. The writing keeps returning to a few people — proof they invest in depth over breadth, and notice when relationships go quiet.",
+              "Values & What Drives Them": "Honesty, momentum, and craft. Motivated by making something real, by people who push back, and by the discomfort of not yet being good enough at the thing they care about most.",
+              "What They're Looking For": "People who trade ideas at 2am, builders mid-leap, and friends who show up. Open to minds like theirs — and to the ones who fill the gaps they keep writing around.",
             }}
             signal={{ openness: "high", drive: "high", communication_style: "direct", social_energy: "ambivert", emotional_openness: "medium" }}
           />
