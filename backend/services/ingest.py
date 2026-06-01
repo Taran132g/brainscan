@@ -19,9 +19,9 @@ from services.chunker import chunk_document
 from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
-from services.db import record_vault_upload, upsert_profile_snapshot, record_scan, get_client
+from services.db import record_vault_upload, upsert_profile_snapshot, record_scan, get_privacy, get_client
 from services.paywall import check_upload_allowed
-from services.match_service import upsert_scan_match_vectors
+from services.match_service import upsert_scan_match_vectors, delete_scan_match_vectors
 
 
 def ingest_vault(
@@ -147,7 +147,11 @@ def ingest_vault(
     except Exception as e:
         print(f"[ingest] match metadata read failed: {e}")
 
-    upsert_scan_match_vectors(user_id, "brainscan", brain_card, match_meta)
+    # Respect the matching opt-out — don't (re)add opted-out users to the pool.
+    if get_privacy(user_id).get("matching_enabled", True):
+        upsert_scan_match_vectors(user_id, "brainscan", brain_card, match_meta)
+    else:
+        delete_scan_match_vectors(user_id, "brainscan")
 
     return {
         "status": "success",

@@ -127,6 +127,61 @@ def update_profile_fields(user_id: str, fields: dict) -> dict:
     return clean
 
 
+PRIVACY_DEFAULTS = {"profile_public": True, "hidden_sections": [], "matching_enabled": True}
+
+
+def get_privacy(user_id: str) -> dict:
+    """
+    Read a user's privacy/matching settings. Migration-safe: if the columns
+    (migration 0011) don't exist yet, returns today's defaults (public,
+    matchable, nothing hidden) so the app behaves exactly as before.
+    """
+    try:
+        res = (
+            get_client()
+            .table("profiles")
+            .select("profile_public, hidden_sections, matching_enabled")
+            .eq("id", user_id)
+            .limit(1)
+            .execute()
+        )
+        row = (res.data or [{}])[0]
+    except Exception as e:
+        # Columns missing pre-migration (or transient) → safe defaults.
+        print(f"[db] get_privacy fallback: {e}")
+        return dict(PRIVACY_DEFAULTS)
+    return {
+        "profile_public": row.get("profile_public", True) if row.get("profile_public") is not None else True,
+        "hidden_sections": row.get("hidden_sections") or [],
+        "matching_enabled": row.get("matching_enabled", True) if row.get("matching_enabled") is not None else True,
+    }
+
+
+def set_privacy(
+    user_id: str,
+    *,
+    profile_public: bool | None = None,
+    hidden_sections: list | None = None,
+    matching_enabled: bool | None = None,
+) -> dict:
+    """
+    Persist only the provided privacy fields. Kept separate from
+    update_profile_fields, which coerces falsy values to None (would corrupt
+    `False` / `[]`). Returns the merged effective settings.
+    """
+    patch: dict = {"id": user_id}
+    if profile_public is not None:
+        patch["profile_public"] = bool(profile_public)
+    if matching_enabled is not None:
+        patch["matching_enabled"] = bool(matching_enabled)
+    if hidden_sections is not None:
+        # Normalize to a list of strings.
+        patch["hidden_sections"] = [str(s) for s in hidden_sections]
+    if len(patch) > 1:
+        get_client().table("profiles").upsert(patch, on_conflict="id").execute()
+    return get_privacy(user_id)
+
+
 def record_scan(user_id: str, domain: str, sections: dict, signal: dict) -> None:
     """Append a scan result to the append-only scans table (soft-fails)."""
     try:

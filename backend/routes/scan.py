@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from services.auth import get_current_user_id
 from services.scan_domains import DOMAINS, get_domain
 from services.brain_card import generate_brain_card
-from services.db import record_scan, get_latest_scans, get_scan_timeline, get_client
+from services.db import record_scan, get_latest_scans, get_scan_timeline, get_privacy, get_client
 from services.match_service import upsert_scan_match_vectors, find_domain_matches
 
 router = APIRouter()
@@ -59,6 +59,7 @@ async def run_scans(body: dict = Body(default={}), user_id: str = Depends(get_cu
         )
 
     meta = _profile_meta(user_id)
+    matching_on = get_privacy(user_id).get("matching_enabled", True)
     results: dict = {}
     for d in valid:
         try:
@@ -69,8 +70,10 @@ async def run_scans(body: dict = Body(default={}), user_id: str = Depends(get_cu
                 results[d] = {"error": "No vault content found — upload your digital brain first."}
                 continue
             record_scan(user_id, d, sections, signal)
-            # Make this scan matchable — embed it into the per-domain people pool.
-            upsert_scan_match_vectors(user_id, d, {"sections": sections, "signal": signal}, meta)
+            # Make this scan matchable — embed it into the per-domain people pool
+            # (unless the user has opted out of matching).
+            if matching_on:
+                upsert_scan_match_vectors(user_id, d, {"sections": sections, "signal": signal}, meta)
             dom = get_domain(d)
             results[d] = {
                 "domain": d,

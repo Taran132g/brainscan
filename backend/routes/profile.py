@@ -3,8 +3,8 @@ from services.embedder import embed_query
 from services.vector_store import query_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path, get_current_user_id
-from services.db import get_client, update_profile_fields
-from services.match_service import _coords_for
+from services.db import get_client, update_profile_fields, get_privacy, set_privacy
+from services.match_service import _coords_for, upsert_scan_match_vectors, delete_scan_match_vectors
 from services.paywall import FULL_TIER_FREE_UPLOADS_PER_CYCLE
 
 router = APIRouter()
@@ -26,6 +26,58 @@ async def update_my_profile(
         "city": written.get("city"),
         "geocoded": coords is not None,
     }
+
+
+@router.get("/profile/me/privacy")
+async def get_my_privacy(user_id: str = Depends(get_current_user_id)):
+    """Current privacy + matching settings (powers the Settings UI)."""
+    return get_privacy(user_id)
+
+
+def _reindex_into_pool(user_id: str) -> None:
+    """Re-embed a user's stored Brain Card into the people pool (opt back in)."""
+    try:
+        res = get_client().table("profiles").select(
+            "brain_card, founder_signal, full_name, city, school, avatar_url"
+        ).eq("id", user_id).limit(1).execute()
+        row = (res.data or [{}])[0]
+        if not row.get("brain_card"):
+            return
+        card = {"sections": row.get("brain_card"), "signal": row.get("founder_signal") or {}}
+        meta = {
+            "full_name": row.get("full_name"),
+            "city": row.get("city"),
+            "school": row.get("school"),
+            "avatar_url": row.get("avatar_url"),
+        }
+        upsert_scan_match_vectors(user_id, "brainscan", card, meta)
+    except Exception as e:
+        print(f"[profile] reindex into pool failed: {e}")
+
+
+@router.put("/profile/me/privacy")
+async def update_my_privacy(
+    body: dict = Body(...),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Update privacy / matching controls. Turning matching off removes the user
+    from the people pool immediately; turning it back on re-embeds their stored
+    Brain Card.
+    """
+    before = get_privacy(user_id)
+    settings = set_privacy(
+        user_id,
+        profile_public=body.get("profile_public"),
+        hidden_sections=body.get("hidden_sections"),
+        matching_enabled=body.get("matching_enabled"),
+    )
+    if body.get("matching_enabled") is not None and settings["matching_enabled"] != before["matching_enabled"]:
+        if settings["matching_enabled"]:
+            _reindex_into_pool(user_id)
+        else:
+            delete_scan_match_vectors(user_id, "brainscan")
+    return {"ok": True, **settings}
 
 
 @router.get("/discover/founders")
@@ -86,12 +138,24 @@ async def get_public_brain_card(user_id: str):
     if not row or not row.get("brain_card"):
         raise HTTPException(status_code=404, detail="No public brain card for this user")
 
+    # Privacy: a private profile is not viewable by others. Return a minimal
+    # "private" marker (no card data) so the page can render a locked state.
+    privacy = get_privacy(user_id)
+    if not privacy["profile_public"]:
+        return {"user_id": user_id, "private": True}
+
+    # Hide any sections the user opted to keep off their public card.
+    sections = row.get("brain_card") or {}
+    hidden = set(privacy.get("hidden_sections") or [])
+    if hidden and isinstance(sections, dict):
+        sections = {k: v for k, v in sections.items() if k not in hidden}
+
     return {
         "user_id": user_id,
         "full_name": row.get("full_name") or "Founder",
         "avatar_url": row.get("avatar_url"),
         "brain_card": {
-            "sections": row.get("brain_card"),
+            "sections": sections,
             "founder_signal": row.get("founder_signal") or {},
         },
         "brain_confidence": row.get("brain_confidence"),
@@ -133,6 +197,14 @@ async def get_og_profile(user_id: str):
     row = (res.data or [None])[0]
     if not row:
         raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Private profiles don't leak data into the share image.
+    if not get_privacy(user_id)["profile_public"]:
+        return {
+            "user_id": user_id, "private": True, "full_name": "Private profile",
+            "brain_confidence": None, "founder_signal": {}, "github": None,
+            "linkedin": None, "school": None, "age": None, "total_scans": 0,
+        }
 
     # Lifetime scan count — small extra read; cheap and useful on the card
     scans_res = (

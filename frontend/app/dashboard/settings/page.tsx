@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Mail, CreditCard, LogOut, Trash2, Lock, ArrowRight, ExternalLink, Loader2, Puzzle, Copy, Check } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
+import { PrivacyControls } from "@/components/PrivacyControls";
 
 type SubStatus = {
   subscription_tier: "free" | "brain_card" | "full" | string;
@@ -190,10 +191,11 @@ export default function SettingsPage() {
         )}
       </Section>
 
-      {/* Privacy */}
-      <Section title="Privacy">
+      {/* Privacy & matching */}
+      <Section title="Privacy & matching">
+        <PrivacyControls />
         <p className="text-xs px-4 py-3 rounded-lg" style={{ color: "var(--text-secondary)", backgroundColor: "var(--background)" }}>
-          Your vault is stored as embeddings (vectors) only — raw text is never persisted past the analysis call. Each user has a private Pinecone namespace. When matching launches, only vectors are compared, never raw notes.
+          Your vault is stored as embeddings (vectors) only — raw text is never persisted past the analysis call. Each user has a private Pinecone namespace; only vectors are compared, never raw notes.
         </p>
       </Section>
 

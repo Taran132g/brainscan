@@ -54,6 +54,7 @@ export default function ProfilePage() {
   const [connecting, setConnecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
   const handleShare = async () => {
@@ -109,6 +110,11 @@ export default function ProfilePage() {
         return r.json();
       })
       .then((data) => {
+        if (data.private) {
+          setIsPrivate(true);
+          setLoading(false);
+          return;
+        }
         setBrainCard(data.brain_card);
         setUserName(data.full_name || userId);
         if (data.profile) setPublicProfile(data.profile);
@@ -209,6 +215,23 @@ export default function ProfilePage() {
             <Link href="/upload" className="mt-4 inline-block text-sm" style={{ color: "var(--accent)" }}>
               Go back to upload
             </Link>
+          </div>
+        ) : isPrivate ? (
+          <div className="text-center py-24">
+            <Lock size={30} className="mx-auto mb-4" style={{ color: "var(--accent)" }} />
+            <h2 className="text-lg font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+              {user?.id === userId ? "Your profile is private" : "This profile is private"}
+            </h2>
+            <p className="text-sm max-w-sm mx-auto" style={{ color: "var(--text-secondary)" }}>
+              {user?.id === userId
+                ? "Only you can see your Brain Card. You can change this anytime in Settings."
+                : "The owner has made their Brain Card private."}
+            </p>
+            {user?.id === userId && (
+              <Link href="/dashboard/settings" className="mt-4 inline-block text-sm" style={{ color: "var(--accent)" }}>
+                Privacy settings →
+              </Link>
+            )}
           </div>
         ) : (
           <>

@@ -114,6 +114,16 @@ def upsert_scan_match_vectors(user_id: str, domain: str, card: dict, profile_met
         return False
 
 
+def delete_scan_match_vectors(user_id: str, domain: str = "brainscan") -> None:
+    """Remove a user from the people pool for a domain (matching opt-out)."""
+    index = _get_index()
+    for ns in (_scan_profile_ns(domain), _scan_needs_ns(domain)):
+        try:
+            index.delete(ids=[user_id], namespace=ns)
+        except Exception as e:
+            print(f"[match] delete_scan_match_vectors ({ns}) failed: {e}")
+
+
 def _vec_of(obj):
     if not obj:
         return None
