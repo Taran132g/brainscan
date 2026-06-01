@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Users } from "lucide-react";
+import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Users, ScanLine } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { BrainCardHero } from "@/components/BrainCardHero";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
@@ -89,8 +89,8 @@ export default function DashboardOverview() {
         </h1>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
           {hasBrainCard
-            ? "Here's a snapshot of your brain card."
-            : "Upload your vault to generate your brain card."}
+            ? "Your founder scan. Run career & relationship scans anytime."
+            : "Scan your digital brain to see how you actually think."}
         </p>
       </div>
 
@@ -114,13 +114,22 @@ export default function DashboardOverview() {
             </p>
           )}
 
-          <Link
-            href={`/profile/${user?.id}`}
-            className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
-            style={{ color: "var(--accent)" }}
-          >
-            View full brain card <ArrowRight size={13} />
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              href={`/profile/${user?.id}`}
+              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+              style={{ color: "var(--accent)" }}
+            >
+              View full founder scan <ArrowRight size={13} />
+            </Link>
+            <Link
+              href="/dashboard/scans"
+              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+              style={{ color: "var(--accent)" }}
+            >
+              Run career & relationship scans <ArrowRight size={13} />
+            </Link>
+          </div>
 
           {/* Quick actions */}
           <section>
@@ -129,9 +138,15 @@ export default function DashboardOverview() {
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <ActionCard
+                icon={<ScanLine size={18} style={{ color: "var(--accent)" }} />}
+                title="Run another scan"
+                description="Career & relationships — same brain, a new lens"
+                href="/dashboard/scans"
+              />
+              <ActionCard
                 icon={<FileArchive size={18} style={{ color: "var(--accent)" }} />}
-                title="Re-upload your vault"
-                description="Refresh your brain card with your latest notes"
+                title="Re-upload your brain"
+                description="Refresh every scan with your latest notes"
                 href="/upload"
               />
               <ActionCard
@@ -157,17 +172,18 @@ export default function DashboardOverview() {
         >
           <Brain size={36} className="mx-auto mb-4" style={{ color: "var(--accent)" }} />
           <h2 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-            Generate your brain card
+            Scan your brain
           </h2>
           <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: "var(--text-secondary)" }}>
-            Upload your digital brain — Obsidian, Notion, or any knowledge base — to get a 5-section co-founder compatibility profile based on how you actually think.
+            Upload your digital brain — Obsidian, Notion, or any knowledge base — and BrainScan reads how
+            you actually think across founder, career, and relationships.
           </p>
           <Link
             href="/upload"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            Upload your vault <ArrowRight size={14} />
+            Scan your brain <ArrowRight size={14} />
           </Link>
           <p className="text-xs mt-6" style={{ color: "var(--text-secondary)" }}>
             Don&apos;t have a vault?{" "}

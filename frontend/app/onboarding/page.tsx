@@ -123,7 +123,7 @@ export default function OnboardingPage() {
         <div key={step} className="w-full max-w-lg animate-in">
           {/* Step 0 — Name */}
           {step === 0 && (
-            <Q label="First, what should we call you?" hint="This shows on your brain card and to people you match with.">
+            <Q label="First, what should we call you?" hint="This shows on your scans and to people you match with.">
               <input
                 autoFocus
                 value={fullName}
@@ -269,14 +269,28 @@ function TeaserStep({
           <Sparkles size={12} /> Preview
         </div>
         <h1 className="text-2xl md:text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
-          Here&apos;s what {first}&apos;s brain card becomes
+          Here&apos;s what BrainScan reads from {first}&apos;s brain
         </h1>
         <p className="text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
-          A sample of the real thing — generated once you upload your digital brain.
+          One upload → scans across founder, career &amp; relationships. Here&apos;s a sample founder scan.
         </p>
       </div>
 
-      {/* Sample brain card */}
+      {/* The three scans */}
+      <div className="flex items-center justify-center gap-2 flex-wrap">
+        {[
+          { label: "Founder", color: "#10b981" },
+          { label: "Career", color: "#3b82f6" },
+          { label: "Relationships", color: "#ec4899" },
+        ].map((d) => (
+          <span key={d.label} className="text-xs px-3 py-1 rounded-full border"
+            style={{ borderColor: `${d.color}55`, color: d.color, backgroundColor: `${d.color}14` }}>
+            {d.label}
+          </span>
+        ))}
+      </div>
+
+      {/* Sample founder scan */}
       <div className="rounded-2xl border overflow-hidden glow-accent"
         style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
         <div className="p-5 flex items-center gap-3 border-b" style={{ borderColor: "var(--border)" }}>
