@@ -19,7 +19,7 @@ from services.chunker import chunk_document
 from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
-from services.db import record_vault_upload, upsert_profile_snapshot, get_client
+from services.db import record_vault_upload, upsert_profile_snapshot, record_scan, get_client
 from services.paywall import check_upload_allowed
 from services.match_service import upsert_scan_match_vectors
 
@@ -109,6 +109,16 @@ def ingest_vault(
         brain_card=brain_card,
         github_username=github_username,
         linkedin_url=linkedin_url,
+    )
+
+    # An upload IS a scan — record it to the scans table so the Brain Card page
+    # (/scan/me) and the People page (hasScanned gate) reflect it without the
+    # user having to click "Generate" separately. Powers the longitudinal diff too.
+    record_scan(
+        user_id,
+        "brainscan",
+        brain_card.get("sections") or {},
+        brain_card.get("signal") or brain_card.get("founder_signal") or {},
     )
 
     # Verification → brain confidence (GitHub / LinkedIn / Instagram).

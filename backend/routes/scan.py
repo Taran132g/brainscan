@@ -88,7 +88,32 @@ async def run_scans(body: dict = Body(default={}), user_id: str = Depends(get_cu
 @router.get("/scan/me")
 async def latest_scans(user_id: str = Depends(get_current_user_id)):
     """Latest scan per domain for the caller."""
-    return JSONResponse({"latest": get_latest_scans(user_id)})
+    latest = get_latest_scans(user_id)
+    # Fallback: users who uploaded before scans were recorded (or via a path that
+    # only wrote profiles.brain_card) have no scans-table row. Surface their stored
+    # card as the latest brainscan so the Brain Card + People pages work without a
+    # manual re-scan.
+    if "brainscan" not in latest:
+        try:
+            res = (
+                get_client()
+                .table("profiles")
+                .select("brain_card, founder_signal")
+                .eq("id", user_id)
+                .limit(1)
+                .execute()
+            )
+            row = (res.data or [{}])[0]
+            if row.get("brain_card"):
+                latest["brainscan"] = {
+                    "domain": "brainscan",
+                    "sections": row.get("brain_card"),
+                    "signal": row.get("founder_signal") or {},
+                    "created_at": None,
+                }
+        except Exception as e:
+            print(f"[scan] latest_scans fallback failed: {e}")
+    return JSONResponse({"latest": latest})
 
 
 @router.get("/scan/people")
