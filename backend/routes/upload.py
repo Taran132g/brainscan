@@ -16,12 +16,15 @@ router = APIRouter()
 
 
 @router.post("/upload/{user_id}")
-async def upload_vault(
+def upload_vault(
     file: UploadFile = File(...),
     github_username: Optional[str] = Form(default=None),
     linkedin_url: Optional[str] = Form(default=None),
     user_id: str = Depends(verify_user_owns_path),
 ):
+    # NOTE: sync `def` (not async) so FastAPI runs this heavy, multi-minute job
+    # in a worker thread — a big vault upload no longer blocks /health or the
+    # rest of the single-worker API.
     if not file.filename.endswith(".zip"):
         raise HTTPException(status_code=400, detail="Upload must be a .zip file")
 
@@ -42,7 +45,7 @@ async def upload_vault(
     # Charged BEFORE any heavy work so we never burn Claude tokens on a denied request.
     payment_info = check_upload_allowed(user_id)
 
-    zip_bytes = await file.read()
+    zip_bytes = file.file.read()
     if len(zip_bytes) > 100 * 1024 * 1024:  # 100MB limit
         raise HTTPException(status_code=400, detail="Vault zip exceeds 100MB limit")
 
