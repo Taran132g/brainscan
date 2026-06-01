@@ -1,4 +1,4 @@
-import { Brain, Zap, Shield, ArrowRight, Users, Award, Download, Sparkles } from "lucide-react";
+import { Brain, Zap, Shield, ArrowRight, Users, Award, Download, Sparkles, Rocket, Briefcase, Heart } from "lucide-react";
 import { SmartCta } from "@/components/SmartCta";
 import { BrainGridBackground } from "@/components/BrainGridBackground";
 import { BrainCardHero } from "@/components/BrainCardHero";
@@ -37,14 +37,14 @@ export default function Home() {
           style={{ borderColor: "var(--accent)", color: "var(--accent)", backgroundColor: "var(--accent-glow)" }}
         >
           <Zap size={12} />
-          Co-founder matching powered by how you think
+          AI that reads your second brain
         </div>
 
         <h1
           className="text-5xl md:text-7xl font-bold leading-[1.04] max-w-3xl mb-6 animate-in animate-in-1"
           style={{ color: "var(--text-primary)" }}
         >
-          Find founders who think{" "}
+          See how you actually think{" "}
           <span
             style={{
               background: "linear-gradient(120deg, var(--accent), var(--accent-hover) 60%, #a78bfa)",
@@ -53,13 +53,14 @@ export default function Home() {
               color: "transparent",
             }}
           >
-            like you do
+            — read from your own notes
           </span>
         </h1>
 
         <p className="text-lg md:text-xl max-w-xl mb-10 leading-relaxed animate-in animate-in-2" style={{ color: "var(--text-secondary)" }}>
-          Upload your digital brain — Obsidian, Notion, or any knowledge base. We analyze how you think,
-          what you&apos;re building, and what you value — then match you with co-founders whose brains genuinely complement yours.
+          Upload your digital brain — Obsidian, Notion, any knowledge base. BrainScan reads how you think
+          and reflects it back across the domains that matter: as a <strong style={{ color: "var(--text-primary)" }}>founder</strong> (with
+          co-founder matches), in your <strong style={{ color: "var(--text-primary)" }}>career</strong>, and in your <strong style={{ color: "var(--text-primary)" }}>relationships</strong>.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 mb-16 animate-in animate-in-3">
@@ -67,7 +68,7 @@ export default function Home() {
             className="flex items-center gap-2 px-7 py-3.5 rounded-xl font-semibold hover:opacity-90 glow-accent"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            Upload Your Vault
+            Scan your brain
             <ArrowRight size={16} />
           </SmartCta>
           <a
@@ -81,6 +82,57 @@ export default function Home() {
         </section>
       </div>
 
+      {/* Domains — the three scans */}
+      <section className="px-6 pb-8 pt-4 max-w-5xl mx-auto">
+        <Reveal>
+          <h2 className="text-2xl md:text-4xl font-bold text-center mb-3" style={{ color: "var(--text-primary)" }}>
+            One brain. Three scans.
+          </h2>
+          <p className="text-sm text-center mb-10 max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
+            The same digital brain, read through different lenses. Run any of them — and track how you
+            change over time.
+          </p>
+        </Reveal>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {[
+            {
+              icon: <Rocket size={22} />,
+              color: "#10b981",
+              title: "Founder",
+              desc: "Are you ready to build? A founder card + 1–10 rank, and matches with co-founders whose brains complement yours.",
+            },
+            {
+              icon: <Briefcase size={22} />,
+              color: "#3b82f6",
+              title: "Career",
+              desc: "How you actually work and where you're headed — execution style, real strengths, and honest growth areas.",
+            },
+            {
+              icon: <Heart size={22} />,
+              color: "#ec4899",
+              title: "Relationships",
+              desc: "A gentle, non-clinical mirror of how you connect, communicate, and what you need from people.",
+            },
+          ].map((d, i) => (
+            <Reveal key={d.title} delay={i * 90} className="h-full">
+              <div
+                className="p-6 rounded-2xl border h-full card-hover flex flex-col gap-3"
+                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+              >
+                <div
+                  className="w-11 h-11 rounded-xl flex items-center justify-center"
+                  style={{ backgroundColor: `${d.color}1f`, color: d.color }}
+                >
+                  {d.icon}
+                </div>
+                <h3 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{d.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "var(--text-secondary)" }}>{d.desc}</p>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
       {/* Mission */}
       <section className="px-6 py-20 max-w-3xl mx-auto text-center">
         <Reveal>
@@ -88,14 +140,14 @@ export default function Home() {
             WHY WE EXIST
           </div>
           <h2 className="text-2xl md:text-4xl font-bold mb-6 leading-snug" style={{ color: "var(--text-primary)" }}>
-            Startups rarely die from bad ideas. They die from the wrong co-founder.
+            A quiz can&apos;t tell you who you are. Your own words can.
           </h2>
           <p className="text-base md:text-lg leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-            A résumé and a &ldquo;looking for a technical co-founder&rdquo; post can&apos;t tell you how
-            someone actually thinks, what they value, or whether you&apos;ll still want to build together
-            at 2am on month nine. We believe the truest signal of fit is already written down — in your
-            notes, your ideas, your <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>digital brain</span>.
-            BrainScan turns that into a founder profile and matches you on substance, not surface.
+            A personality test is 20 questions. A résumé is a highlight reel. But you&apos;ve already written
+            thousands of words about how you think, what you&apos;re building, and what you care about.
+            BrainScan reads your <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>digital brain</span> and
+            reflects it back — clearly, across founder, career, and relationships — so you (and the right
+            people) see the real signal, not the surface.
           </p>
         </Reveal>
       </section>
@@ -104,7 +156,7 @@ export default function Home() {
       <section id="how-it-works" className="px-6 py-20 max-w-6xl mx-auto">
         <Reveal>
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-3" style={{ color: "var(--text-primary)" }}>
-            From digital brain to co-founder
+            From digital brain to insight
           </h2>
           <p className="text-sm text-center mb-12 max-w-md mx-auto" style={{ color: "var(--text-secondary)" }}>
             Four steps. The hardest part — building a second brain — you may already have done.
@@ -128,14 +180,14 @@ export default function Home() {
             {
               icon: <Sparkles size={22} style={{ color: "var(--accent)" }} />,
               step: "03",
-              title: "Get your brain card",
-              desc: "AI reads how you think, what you're building, and what you value — and ranks you 1–10 as a founder.",
+              title: "Run your scans",
+              desc: "Pick a lens — founder, career, relationships. AI reads your brain into a structured card with signals for each.",
             },
             {
               icon: <Users size={22} style={{ color: "var(--accent)" }} />,
               step: "04",
-              title: "Match on substance",
-              desc: "Connect with founders who complement your strengths and gaps. You both opt in, then messaging unlocks.",
+              title: "Match & track",
+              desc: "The founder scan matches you with complementary co-founders. Re-scan any domain over time to see what shifted.",
             },
           ].map((item, i) => (
             <Reveal key={item.step} delay={i * 80}>
@@ -172,14 +224,14 @@ export default function Home() {
           <div className="text-center mb-10">
             <div className="inline-flex items-center gap-2 text-xs font-medium mb-3" style={{ color: "var(--accent)" }}>
               <Sparkles size={14} />
-              EXAMPLE BRAIN CARDS
+              EXAMPLE SCAN · FOUNDER
             </div>
             <h2 className="text-2xl md:text-4xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-              This is what we generate
+              This is what a scan looks like
             </h2>
             <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-              Five sections, a founder signal, and a 1–10 rank — inferred from how you actually write, not a
-              form you fill out. Connecting GitHub &amp; LinkedIn verifies you and raises your brain confidence.
+              Five sections + a signal read, inferred from how you actually write — not a form you fill out.
+              The founder scan adds a 1–10 rank and co-founder matching; career and relationships read the same way.
             </p>
           </div>
         </Reveal>
@@ -217,11 +269,11 @@ export default function Home() {
               FOUNDER TIERS
             </div>
             <h2 className="text-2xl md:text-4xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-              Ranked 1–10. Five tiers.
+              The founder scan ranks you 1–10
             </h2>
             <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-              Your rank is computed from your brain card, your shipped track record, and verifiable signals
-              from GitHub and LinkedIn. Higher rank = better match quality.
+              Computed from your brain card, your shipped track record, and verifiable signals from GitHub and
+              LinkedIn. Higher rank = better match quality. (Career &amp; relationship scans read signals too — just no rank.)
             </p>
           </div>
         </Reveal>
@@ -278,7 +330,7 @@ export default function Home() {
       <section className="px-6 py-24 text-center">
         <Reveal>
           <h2 className="text-3xl md:text-5xl font-bold mb-4" style={{ color: "var(--text-primary)" }}>
-            Ready to find your co-founder?
+            Ready to scan your brain?
           </h2>
           <p className="mb-8 text-sm" style={{ color: "var(--text-secondary)" }}>
             Don&apos;t have a digital brain yet?{" "}

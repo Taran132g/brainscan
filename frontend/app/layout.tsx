@@ -16,8 +16,8 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BrainScan — Match by how you think",
-  description: "Co-founder matching powered by your personal knowledge base.",
+  title: "BrainScan — Read your digital brain",
+  description: "Upload your digital brain and see how you actually think — as a founder, in your career, and in your relationships.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
