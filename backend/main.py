@@ -11,6 +11,7 @@ from routes.payment import router as payment_router
 from routes.github import router as github_router
 from routes.linkedin import router as linkedin_router
 from routes.scan import router as scan_router
+from routes.plugin import router as plugin_router
 
 app = FastAPI(title="BrainScan API", version="0.1.0")
 
@@ -37,6 +38,7 @@ app.include_router(payment_router, prefix="/api", tags=["payment"])
 app.include_router(github_router, prefix="/api", tags=["github"])
 app.include_router(linkedin_router, prefix="/api", tags=["linkedin"])
 app.include_router(scan_router, prefix="/api", tags=["scan"])
+app.include_router(plugin_router, prefix="/api", tags=["plugin"])
 
 
 @app.get("/health")

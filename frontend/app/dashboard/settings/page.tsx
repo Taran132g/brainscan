@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Mail, CreditCard, LogOut, Trash2, Lock, ArrowRight, ExternalLink, Loader2 } from "lucide-react";
+import { Mail, CreditCard, LogOut, Trash2, Lock, ArrowRight, ExternalLink, Loader2, Puzzle, Copy, Check } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 
@@ -24,6 +24,9 @@ export default function SettingsPage() {
   const { user, signOut } = useAuth();
   const [sub, setSub] = useState<SubStatus | null>(null);
   const [portalBusy, setPortalBusy] = useState(false);
+  const [pluginToken, setPluginToken] = useState<string | null>(null);
+  const [tokenBusy, setTokenBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -42,6 +45,32 @@ export default function SettingsPage() {
       window.location.href = url;
     } catch {
       setPortalBusy(false);
+    }
+  };
+
+  const connectObsidian = async () => {
+    setTokenBusy(true);
+    setCopied(false);
+    try {
+      const res = await authedFetch(`${API_BASE_URL}/api/plugin/token`, { method: "POST" });
+      if (!res.ok) throw new Error();
+      const { token } = (await res.json()) as { token: string };
+      setPluginToken(token);
+    } catch {
+      setPluginToken(null);
+    } finally {
+      setTokenBusy(false);
+    }
+  };
+
+  const copyToken = async () => {
+    if (!pluginToken) return;
+    try {
+      await navigator.clipboard.writeText(pluginToken);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard unavailable */
     }
   };
 
@@ -120,6 +149,45 @@ export default function SettingsPage() {
           <strong>$0.99</strong> — each extra upload ·{" "}
           <strong>$3.00</strong> — upgrade Brain Card → Full
         </p>
+      </Section>
+
+      {/* Connect Obsidian */}
+      <Section title="Connect Obsidian">
+        <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          Install the BrainScan plugin in Obsidian, then paste this token into its settings to scan your vault without leaving the app.
+        </p>
+        {pluginToken ? (
+          <div className="flex flex-col gap-2">
+            <div
+              className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg font-mono text-xs break-all"
+              style={{ backgroundColor: "var(--background)", color: "var(--text-primary)" }}
+            >
+              <span>{pluginToken}</span>
+              <button
+                onClick={copyToken}
+                className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-md border text-xs"
+                style={{ borderColor: "var(--border)", color: "var(--text-secondary)" }}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />} {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <p className="text-xs" style={{ color: "#f59e0b" }}>
+              Copy it now — it won't be shown again. Generating a new one replaces the old.
+            </p>
+          </div>
+        ) : (
+          <div className="flex">
+            <button
+              onClick={connectObsidian}
+              disabled={tokenBusy}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+              style={{ backgroundColor: "var(--accent)", color: "white" }}
+            >
+              {tokenBusy ? <Loader2 size={13} className="animate-spin" /> : <Puzzle size={13} />}
+              Generate plugin token
+            </button>
+          </div>
+        )}
       </Section>
 
       {/* Privacy */}

@@ -1,0 +1,10 @@
+{
+  "id": "brainscan",
+  "name": "BrainScan",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Scan your vault into a BrainScan brain card — see how you think and meet people whose minds match yours.",
+  "author": "BrainScan",
+  "authorUrl": "https://findingfounders.app",
+  "isDesktopOnly": true
+}

@@ -1,0 +1,21 @@
+{
+  "name": "brainscan-obsidian",
+  "version": "0.1.0",
+  "description": "BrainScan plugin for Obsidian — scan your vault into a brain card.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production"
+  },
+  "keywords": ["obsidian", "brainscan"],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "esbuild": "0.21.5",
+    "obsidian": "^1.5.0",
+    "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  }
+}
