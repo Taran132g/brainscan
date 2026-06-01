@@ -136,12 +136,35 @@ PEOPLE = [
 ]
 
 
+def _brainscan_card(p):
+    """Compose a whole-person Brain Card from a person's career + relationships."""
+    c, r = p["career"]["sections"], p["relationships"]["sections"]
+    cs, rs = p["career"]["signal"], p["relationships"]["signal"]
+    return {
+        "sections": {
+            "Who They Are": c["Professional Identity"],
+            "How They Think": c["How They Execute"],
+            "Career & Ambition": f'{c["Strengths"]} {c["Ideal Next Role"]}',
+            "How They Connect": f'{r["How They Connect"]} {r["Communication Style"]}',
+            "Values & What Drives Them": r["What They Value"],
+            "What They're Looking For": r["What They Need"],
+        },
+        "signal": {
+            "openness": "high" if cs["growth_drive"] == "high" else "medium",
+            "drive": cs["growth_drive"],
+            "communication_style": rs["communication_style"],
+            "social_energy": "extrovert" if rs["emotional_openness"] == "high" else "introvert" if rs["independence"] == "high" else "ambivert",
+            "emotional_openness": rs["emotional_openness"],
+        },
+    }
+
+
 def main():
     for p in PEOPLE:
         user_id = uid(p["name"])
         meta = {"full_name": p["name"], "city": p["city"], "school": p["school"], "avatar_url": ""}
-        for domain in ("career", "relationships"):
-            card = p[domain]
+        cards = {"career": p["career"], "relationships": p["relationships"], "brainscan": _brainscan_card(p)}
+        for domain, card in cards.items():
             ok = upsert_scan_match_vectors(user_id, domain, card, meta)
             print(f"  {'✓' if ok else 'x'} {p['name']} · {domain}")
     print("\nDone seeding scan people.")
