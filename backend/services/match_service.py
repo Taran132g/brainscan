@@ -598,6 +598,13 @@ def _vec_of(obj):
     return obj["values"] if isinstance(obj, dict) else obj.values
 
 
+def _calibrate_match(raw: float) -> int:
+    """Stretch the compressed e5 similarity band (~0.74–0.97) across 35–99 so
+    match percentages are legible instead of all reading in the 90s."""
+    f = max(0.0, min(1.0, (raw - 0.74) / (0.97 - 0.74)))
+    return round(35 + f * 64)
+
+
 def find_domain_matches(user_id: str, domain: str, mode: str = "similar", top_k: int = 12) -> List[dict]:
     """
     People in `domain` ranked by:
@@ -649,7 +656,7 @@ def find_domain_matches(user_id: str, domain: str, mode: str = "similar", top_k:
     return [
         {
             "user_id": cid,
-            "score": round(s * 100),
+            "score": _calibrate_match(s),
             "name": m.get("name") or "Someone",
             "city": m.get("city") or "",
             "avatar_url": m.get("avatar_url") or None,
