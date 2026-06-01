@@ -243,11 +243,7 @@ async def get_scan_stats(user_id: str = Depends(verify_user_owns_path)):
         remaining_this_cycle = max(0, FULL_TIER_FREE_UPLOADS_PER_CYCLE - used)
         can_upload_via_quota = remaining_this_cycle > 0
 
-    # Everyone's first brain card is free — a free-tier user who has never
-    # scanned can upload once without paying.
-    first_free_available = tier == "free" and total_scans == 0
-
-    can_upload = available_credits > 0 or can_upload_via_quota or first_free_available
+    can_upload = available_credits > 0 or can_upload_via_quota
 
     return {
         "total_scans": total_scans,
@@ -257,6 +253,5 @@ async def get_scan_stats(user_id: str = Depends(verify_user_owns_path)):
         "uploads_in_cycle": used,
         "free_uploads_per_cycle": FULL_TIER_FREE_UPLOADS_PER_CYCLE if tier == "full" else None,
         "remaining_this_cycle": remaining_this_cycle,
-        "first_free_available": first_free_available,
         "can_upload": can_upload,
     }
