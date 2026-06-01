@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Users, ScanLine } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
-import { BrainCardHero } from "@/components/BrainCardHero";
+import { ScanCard } from "@/components/ScanCard";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 
 type VaultQuality = {
@@ -70,17 +70,6 @@ export default function DashboardOverview() {
   const firstName = displayName.split(" ")[0] || "there";
   const hasBrainCard = !!brainCard;
 
-  // Prefer server-side rank (authoritative). Falls back to client compute
-  // inside BrainCardHero when serverRank is null.
-  const heroProfile = {
-    ...(user?.user_metadata as Record<string, unknown>),
-    ...(serverProfile ?? {}),
-    ...(githubQuality ? { github_quality: githubQuality } : {}),
-    ...(serverRank?.rank
-      ? { server_rank: serverRank.rank, server_tier: serverRank.tier, server_score: serverRank.score }
-      : {}),
-  } as Parameters<typeof BrainCardHero>[0]["profile"];
-
   return (
     <div className="flex flex-col gap-8">
       <div>
@@ -96,18 +85,15 @@ export default function DashboardOverview() {
 
       {hasBrainCard ? (
         <>
-          {/* Brain card hero — same visual as the public profile + OG share image */}
-          <BrainCardHero
-            name={displayName || "Founder"}
-            founderSignal={brainCard?.founder_signal as Parameters<typeof BrainCardHero>[0]["founderSignal"]}
-            brainConfidence={vaultQuality?.score ?? null}
-            profile={heroProfile}
-            avatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
-            variant="full"
+          {/* The whole-person Brain Card */}
+          <ScanCard
+            domain="brainscan"
+            sections={brainCard!.sections}
+            signal={brainCard?.founder_signal || (brainCard as { signal?: Record<string, string | boolean> })?.signal}
           />
 
           {vaultQuality && (
-            <p className="-mt-4 text-xs" style={{ color: "var(--text-secondary)" }}>
+            <p className="-mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
               Built from {vaultQuality.stats.note_count.toLocaleString()} notes ·{" "}
               {vaultQuality.stats.total_words.toLocaleString()} words ·{" "}
               {vaultQuality.stats.avg_words_per_note} avg words/note
@@ -116,18 +102,18 @@ export default function DashboardOverview() {
 
           <div className="flex flex-wrap items-center gap-4">
             <Link
+              href="/dashboard/brain-card"
+              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
+              style={{ color: "var(--accent)" }}
+            >
+              Manage your Brain Card <ArrowRight size={13} />
+            </Link>
+            <Link
               href={`/profile/${user?.id}`}
               className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
               style={{ color: "var(--accent)" }}
             >
-              View full founder scan <ArrowRight size={13} />
-            </Link>
-            <Link
-              href="/dashboard/scans"
-              className="inline-flex items-center gap-1.5 text-sm font-medium hover:underline"
-              style={{ color: "var(--accent)" }}
-            >
-              Run career & relationship scans <ArrowRight size={13} />
+              View public profile <ArrowRight size={13} />
             </Link>
           </div>
 
@@ -139,26 +125,20 @@ export default function DashboardOverview() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <ActionCard
                 icon={<ScanLine size={18} style={{ color: "var(--accent)" }} />}
-                title="Run another scan"
-                description="Career & relationships — same brain, a new lens"
-                href="/dashboard/scans"
-              />
-              <ActionCard
-                icon={<FileArchive size={18} style={{ color: "var(--accent)" }} />}
-                title="Re-upload your brain"
-                description="Refresh every scan with your latest notes"
-                href="/upload"
+                title="Your Brain Card"
+                description="Refresh it or re-upload your digital brain"
+                href="/dashboard/brain-card"
               />
               <ActionCard
                 icon={<Users size={18} style={{ color: "var(--accent)" }} />}
-                title="Your matches"
-                description="Co-founders whose thinking complements yours"
-                href="/dashboard/matches"
+                title="Your people"
+                description="People matched on how you actually think"
+                href="/dashboard/people"
               />
               <ActionCard
                 icon={<Sparkles size={18} style={{ color: "var(--accent)" }} />}
                 title="Connections"
-                description="Connect, then message founders who accept back"
+                description="Connect, then message people who accept back"
                 href="/dashboard/connections"
               />
             </div>

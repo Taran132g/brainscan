@@ -81,7 +81,7 @@ async def get_public_brain_card(user_id: str):
         supabase.table("profiles")
         .select(
             "id, full_name, brain_card, founder_signal, brain_confidence, "
-            "github, linkedin, school, age, avatar_url, "
+            "github, linkedin, instagram, school, age, avatar_url, "
             "founder_score, founder_rank, founder_tier, "
             "github_quality, linkedin_quality, big_tech_employer"
         )
@@ -106,6 +106,7 @@ async def get_public_brain_card(user_id: str):
             "full_name": row.get("full_name"),
             "avatar_url": row.get("avatar_url"),
             "github": row.get("github"),
+            "instagram": row.get("instagram"),
             "linkedin": row.get("linkedin"),
             "school": row.get("school"),
             "age": row.get("age"),

@@ -1,11 +1,8 @@
-import { Brain, Zap, Shield, ArrowRight, Users, Award, Download, Sparkles, Rocket, Briefcase, Heart } from "lucide-react";
+import { Brain, Zap, Shield, ArrowRight, Users, Download, Sparkles, Briefcase, Heart } from "lucide-react";
 import { SmartCta } from "@/components/SmartCta";
 import { BrainGridBackground } from "@/components/BrainGridBackground";
-import { BrainCardHero } from "@/components/BrainCardHero";
+import { ScanCard } from "@/components/ScanCard";
 import { Reveal } from "@/components/Reveal";
-import { TIER_INFO } from "@/lib/fake-users";
-
-const TIER_ORDER = ["Visionary", "Builder", "Operator", "Explorer", "Newcomer"] as const;
 
 export default function Home() {
   return (
@@ -58,9 +55,9 @@ export default function Home() {
         </h1>
 
         <p className="text-lg md:text-xl max-w-xl mb-10 leading-relaxed animate-in animate-in-2" style={{ color: "var(--text-secondary)" }}>
-          Upload your digital brain — Obsidian, Notion, any knowledge base. BrainScan reads how you think
-          and reflects it back across the domains that matter: as a <strong style={{ color: "var(--text-primary)" }}>founder</strong> (with
-          co-founder matches), in your <strong style={{ color: "var(--text-primary)" }}>career</strong>, and in your <strong style={{ color: "var(--text-primary)" }}>relationships</strong>.
+          Upload your digital brain — Obsidian, Notion, any knowledge base. BrainScan reads how you think,
+          your <strong style={{ color: "var(--text-primary)" }}>career</strong>, and your <strong style={{ color: "var(--text-primary)" }}>relationships</strong> into
+          one Brain Card — then connects you with the people you&apos;d genuinely click with.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 mb-16 animate-in animate-in-3">
@@ -82,36 +79,36 @@ export default function Home() {
         </section>
       </div>
 
-      {/* Domains — the three scans */}
+      {/* What the one Brain Card reads */}
       <section className="px-6 pb-8 pt-4 max-w-5xl mx-auto">
         <Reveal>
           <h2 className="text-2xl md:text-4xl font-bold text-center mb-3" style={{ color: "var(--text-primary)" }}>
-            One brain. Three scans.
+            One scan. The whole you.
           </h2>
           <p className="text-sm text-center mb-10 max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-            The same digital brain, read through different lenses. Run any of them — and track how you
-            change over time.
+            A single Brain Card reads across everything that makes you <em>you</em> — then matches you with
+            people who genuinely fit.
           </p>
         </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
             {
-              icon: <Rocket size={22} />,
+              icon: <Brain size={22} />,
               color: "#10b981",
-              title: "Founder",
-              desc: "Are you ready to build? A founder card + 1–10 rank, and matches with co-founders whose brains complement yours.",
+              title: "How you think",
+              desc: "Your mental models, curiosity, and the patterns that run under everything you do.",
             },
             {
               icon: <Briefcase size={22} />,
               color: "#3b82f6",
-              title: "Career",
-              desc: "How you actually work and where you're headed — execution style, real strengths, and honest growth areas.",
+              title: "Career & ambition",
+              desc: "How you actually work and where you're headed — execution style, strengths, what drives you.",
             },
             {
               icon: <Heart size={22} />,
               color: "#ec4899",
-              title: "Relationships",
-              desc: "A gentle, non-clinical mirror of how you connect, communicate, and what you need from people.",
+              title: "How you connect",
+              desc: "How you relate, communicate, and what you need from the people around you.",
             },
           ].map((d, i) => (
             <Reveal key={d.title} delay={i * 90} className="h-full">
@@ -146,8 +143,8 @@ export default function Home() {
             A personality test is 20 questions. A résumé is a highlight reel. But you&apos;ve already written
             thousands of words about how you think, what you&apos;re building, and what you care about.
             BrainScan reads your <span style={{ color: "var(--text-primary)", fontWeight: 600 }}>digital brain</span> and
-            reflects it back — clearly, across founder, career, and relationships — so you (and the right
-            people) see the real signal, not the surface.
+            reflects it back — clearly, across your career, your relationships, and how you think — so you
+            meet people on the real signal, not the surface.
           </p>
         </Reveal>
       </section>
@@ -180,14 +177,14 @@ export default function Home() {
             {
               icon: <Sparkles size={22} style={{ color: "var(--accent)" }} />,
               step: "03",
-              title: "Run your scans",
-              desc: "Pick a lens — founder, career, relationships. AI reads your brain into a structured card with signals for each.",
+              title: "Get your Brain Card",
+              desc: "AI reads your whole self into one card — how you think, your career, and how you connect.",
             },
             {
               icon: <Users size={22} style={{ color: "var(--accent)" }} />,
               step: "04",
-              title: "Match & track",
-              desc: "The founder scan matches you with complementary co-founders. Re-scan any domain over time to see what shifted.",
+              title: "Meet your people",
+              desc: "Get matched on how you actually think — similar minds, or ones that complement your gaps.",
             },
           ].map((item, i) => (
             <Reveal key={item.step} delay={i * 80}>
@@ -218,93 +215,40 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Example brain cards */}
-      <section className="px-6 pb-20 max-w-4xl mx-auto">
+      {/* Example Brain Card */}
+      <section className="px-6 pb-20 max-w-2xl mx-auto">
         <Reveal>
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 text-xs font-medium mb-3" style={{ color: "var(--accent)" }}>
               <Sparkles size={14} />
-              EXAMPLE SCAN · FOUNDER
+              EXAMPLE BRAIN CARD
             </div>
             <h2 className="text-2xl md:text-4xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-              This is what a scan looks like
+              This is what we generate
             </h2>
             <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-              Five sections + a signal read, inferred from how you actually write — not a form you fill out.
-              The founder scan adds a 1–10 rank and co-founder matching; career and relationships read the same way.
+              Six sections + a signal read, inferred from how you actually write — not a form you fill out.
+              It&apos;s what we use to find your people.
             </p>
           </div>
         </Reveal>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <Reveal>
-            <BrainCardHero
-              variant="compact"
-              name="Maya Patel"
-              brainConfidence={88}
-              founderSignal={{ domain_obsession: "high", emotional_stability_signal: "high", shipped_before: true, market_orientation: "b2b", implied_intelligence: "high" }}
-              profile={{ school: "Stanford University", github: "mayap", linkedin: "https://linkedin.com/in/maya" }}
-            />
-          </Reveal>
-          <Reveal delay={90}>
-            <BrainCardHero
-              variant="compact"
-              name="Priya Krishnan"
-              brainConfidence={71}
-              founderSignal={{ domain_obsession: "high", emotional_stability_signal: "medium", shipped_before: true, market_orientation: "infrastructure", implied_intelligence: "high" }}
-              profile={{ school: "UC Berkeley" }}
-            />
-          </Reveal>
-        </div>
-        <p className="text-center text-xs mt-4" style={{ color: "var(--text-muted)" }}>
-          Example founders — your real card and matches appear once you upload your digital brain.
-        </p>
-      </section>
-
-      {/* Tier system */}
-      <section className="px-6 py-20 max-w-5xl mx-auto">
         <Reveal>
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 text-xs font-medium mb-3" style={{ color: "var(--accent)" }}>
-              <Award size={14} />
-              FOUNDER TIERS
-            </div>
-            <h2 className="text-2xl md:text-4xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
-              The founder scan ranks you 1–10
-            </h2>
-            <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-              Computed from your brain card, your shipped track record, and verifiable signals from GitHub and
-              LinkedIn. Higher rank = better match quality. (Career &amp; relationship scans read signals too — just no rank.)
-            </p>
-          </div>
+          <ScanCard
+            domain="brainscan"
+            sections={{
+              "Who They Are": "A builder and writer who thinks in systems and learns in public. Spent the last few years going deep on AI and the craft of shipping.",
+              "How They Think": "First-principles and fast — prototypes ideas to understand them, trusts evidence over consensus, allergic to hand-waving.",
+              "Career & Ambition": "Drawn to ambitious, early-stage work where taste and execution both matter; wants to build things people actually use.",
+              "How They Connect": "Loyal and direct; bonds over ideas and shared obsessions rather than small talk. A few deep relationships over many shallow ones.",
+              "Values & What Drives Them": "Honesty, momentum, and craft. Motivated by making something real and by people who push back.",
+              "What They're Looking For": "People who trade ideas at 2am, builders, and friends who show up — similar minds and ones who fill the gaps.",
+            }}
+            signal={{ openness: "high", drive: "high", communication_style: "direct", social_energy: "ambivert", emotional_openness: "medium" }}
+          />
         </Reveal>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-          {TIER_ORDER.map((tier, i) => {
-            const info = TIER_INFO[tier];
-            return (
-              <Reveal key={tier} delay={i * 70} className="h-full">
-              <div
-                className="p-5 rounded-xl border flex flex-col gap-3 h-full card-hover"
-                style={{ backgroundColor: "var(--surface)", borderColor: info.color }}
-              >
-                <div className="flex items-center justify-between">
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-                    style={{ backgroundColor: info.color, color: "#0a0e17" }}
-                  >
-                    {info.minRank === 9 ? "10" : info.minRank === 7 ? "8" : info.minRank === 5 ? "6" : info.minRank === 3 ? "4" : "2"}
-                  </div>
-                  <span className="text-[10px] font-mono" style={{ color: "var(--text-secondary)" }}>
-                    {info.minRank}–{info.minRank === 9 ? 10 : info.minRank + 1}
-                  </span>
-                </div>
-                <h3 className="font-bold" style={{ color: info.color }}>{tier}</h3>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>{info.description}</p>
-              </div>
-              </Reveal>
-            );
-          })}
-        </div>
+        <p className="text-center text-xs mt-4" style={{ color: "var(--text-muted)" }}>
+          A sample — your real card and your people appear once you upload your digital brain.
+        </p>
       </section>
 
       {/* Privacy callout */}

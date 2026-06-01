@@ -8,9 +8,9 @@ from services.embedder import embed_chunks
 from services.vector_store import upsert_chunks, delete_user_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path
-from services.db import record_vault_upload, upsert_profile_snapshot, get_client, compute_and_persist_rank
+from services.db import record_vault_upload, upsert_profile_snapshot, get_client
 from services.paywall import check_upload_allowed
-from services.match_service import upsert_match_vectors
+from services.match_service import upsert_scan_match_vectors
 
 router = APIRouter()
 
@@ -31,7 +31,7 @@ async def upload_vault(
     profile_res = (
         get_client()
         .table("profiles")
-        .select("github_connected, github_data, github_quality, linkedin, linkedin_connected")
+        .select("github_connected, github_data, github_quality, linkedin, linkedin_connected, instagram")
         .eq("id", user_id)
         .limit(1)
         .execute()
@@ -91,8 +91,9 @@ async def upload_vault(
         external_signals["github_quality"] = profile_row.get("github_quality")
     if linkedin_url:
         external_signals["linkedin_url"] = linkedin_url
-    # /upload is the founder scan today; new domains arrive via a parallel /scan.
-    brain_card = generate_brain_card(all_chunks, external_signals=external_signals, user_id=user_id, domain="founder")
+    # The Brain Card is the single whole-person scan (career + relationships +
+    # how they think). This is what powers the profile, the card, and people-matching.
+    brain_card = generate_brain_card(all_chunks, external_signals=external_signals, user_id=user_id, domain="brainscan")
 
     # Persist to Postgres — both an append-only upload record and a profile snapshot.
     # Soft-fails if Supabase isn't configured yet (so dev still works pre-migration).
@@ -105,13 +106,13 @@ async def upload_vault(
         github_username=github_username,
         linkedin_url=linkedin_url,
     )
-    # Verification → brain confidence. The raw vault quality is preserved in the
-    # upload record above; the *profile* brain_confidence is the credibility a
-    # viewer should place in this card, so unverified founders (no GitHub /
-    # LinkedIn) take a penalty. Connecting them is the way to earn it back.
-    github_verified = bool(profile_row.get("github_connected"))
-    linkedin_verified = bool(profile_row.get("linkedin_connected")) or bool(linkedin_url) or bool(profile_row.get("linkedin"))
-    verification_penalty = (0 if github_verified else 15) + (0 if linkedin_verified else 10)
+    # Verification → brain confidence. Connecting GitHub / LinkedIn / Instagram
+    # raises credibility; an unverified card takes a penalty. (Instagram weights
+    # the relationship/social side of the card.)
+    gh_v = bool(profile_row.get("github_connected"))
+    li_v = bool(profile_row.get("linkedin_connected")) or bool(linkedin_url) or bool(profile_row.get("linkedin"))
+    ig_v = bool(profile_row.get("instagram"))
+    verification_penalty = (0 if gh_v else 12) + (0 if li_v else 8) + (0 if ig_v else 6)
     effective_confidence = max(30, quality["quality_score"] - verification_penalty)
 
     upsert_profile_snapshot(
@@ -122,33 +123,18 @@ async def upload_vault(
         linkedin_url=linkedin_url,
     )
 
-    # Server-side rank — authoritative, drives Discover / matching / public card
-    rank_result = compute_and_persist_rank(user_id)
-
-    # Match vectors — embed brain card sections into one profile vector + one
-    # needs vector per user (Pinecone namespaces: match_profiles, match_needs).
-    # Refresh on every upload so the match feed reflects the latest thinking.
-    match_profile_meta = {
-        "full_name": profile_row.get("full_name") if isinstance(profile_row, dict) else None,
-        "city": None,
-        "school": None,
-        "founder_tier": (rank_result or {}).get("tier"),
-        "founder_rank": (rank_result or {}).get("rank"),
-    }
-    # Pull the fields we need for match metadata
+    # Make this card matchable in the people pool, with full metadata.
+    match_meta = {"full_name": None, "city": None, "school": None, "avatar_url": None}
     try:
         meta_res = get_client().table("profiles").select(
-            "full_name, city, school"
+            "full_name, city, school, avatar_url"
         ).eq("id", user_id).limit(1).execute()
         if meta_res.data:
-            row = meta_res.data[0]
-            match_profile_meta["full_name"] = row.get("full_name") or match_profile_meta["full_name"]
-            match_profile_meta["city"] = row.get("city")
-            match_profile_meta["school"] = row.get("school")
+            match_meta.update(meta_res.data[0])
     except Exception as e:
         print(f"[upload] match metadata read failed: {e}")
 
-    upsert_match_vectors(user_id, brain_card, match_profile_meta)
+    upsert_scan_match_vectors(user_id, "brainscan", brain_card, match_meta)
 
     return JSONResponse({
         "status": "success",
@@ -161,5 +147,4 @@ async def upload_vault(
         },
         "brain_card": brain_card,
         "payment_info": payment_info,
-        "rank": rank_result,
     })

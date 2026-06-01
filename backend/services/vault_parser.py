@@ -5,7 +5,13 @@ from pathlib import Path
 from typing import List, Dict
 
 
-SKIP_DIRS = {".obsidian", ".trash", ".git"}
+# Folders excluded from the brain card. The dot-dirs are Obsidian internals.
+# "Chats", "ChatGPT Archive", and "Raw Learnings" are raw AI session logs /
+# trivial dated exports — high-volume, low-signal (grocery receipts, weather,
+# "activate Tinder Gold", "get Nike receipt") that were flooding the old
+# diversity sampler. Retrieval already sidesteps them, but skipping at parse
+# time keeps both code paths clean and the index lean.
+SKIP_DIRS = {".obsidian", ".trash", ".git", "Chats", "ChatGPT Archive", "Raw Learnings"}
 SKIP_FILES = {"CLAUDE.md", "log.md"}
 
 

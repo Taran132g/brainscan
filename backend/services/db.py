@@ -78,7 +78,9 @@ def upsert_profile_snapshot(
         payload: dict = {
             "id": user_id,
             "brain_card": brain_card.get("sections"),
-            "founder_signal": brain_card.get("founder_signal"),
+            # Stores the whole-person brain_signal (or founder_signal for legacy
+            # founder cards) — the profiles.founder_signal column is reused.
+            "founder_signal": brain_card.get("signal") or brain_card.get("founder_signal"),
             "brain_confidence": quality_score,
         }
         if github_username:
@@ -94,7 +96,7 @@ def upsert_profile_snapshot(
 
 PROFILE_EDITABLE_FIELDS = {
     "full_name", "age", "city", "willing_to_relocate", "work_authorization",
-    "school", "github", "linkedin", "twitter", "website",
+    "school", "github", "linkedin", "instagram", "twitter", "website",
     "gender", "race", "languages", "avatar_url",
 }
 

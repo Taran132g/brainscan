@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { AvatarUpload } from "@/components/AvatarUpload";
 import { ConnectGitHub } from "@/components/ConnectGitHub";
+import { ConnectInstagram } from "@/components/ConnectInstagram";
 import { ConnectLinkedIn } from "@/components/ConnectLinkedIn";
 import { ScanStats } from "@/components/ScanStats";
 
@@ -97,7 +98,7 @@ export default function ProfilePage() {
           Profile
         </h1>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-          Fields used for co-founder matching. Required fields are flagged.
+          Fields that power your Brain Card and who you meet. Required fields are flagged.
         </p>
       </div>
 
@@ -111,6 +112,8 @@ export default function ProfilePage() {
         </Suspense>
 
         <ConnectLinkedIn />
+
+        <ConnectInstagram />
 
         <FieldGroup title="Required">
           <Field label="Full name" required>
