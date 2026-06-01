@@ -178,7 +178,12 @@ def set_privacy(
         # Normalize to a list of strings.
         patch["hidden_sections"] = [str(s) for s in hidden_sections]
     if len(patch) > 1:
-        get_client().table("profiles").upsert(patch, on_conflict="id").execute()
+        try:
+            get_client().table("profiles").upsert(patch, on_conflict="id").execute()
+        except Exception as e:
+            # Columns missing pre-migration (0011) — don't 500; settings just
+            # won't persist until the migration is applied.
+            print(f"[db] set_privacy upsert skipped: {e}")
     return get_privacy(user_id)
 
 
