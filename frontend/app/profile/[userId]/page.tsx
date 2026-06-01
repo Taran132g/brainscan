@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Brain, ArrowRight, RefreshCw, Share2, Check, ShieldCheck } from "lucide-react";
+import { Brain, ArrowRight, RefreshCw, Share2, Check, Lock } from "lucide-react";
 import Link from "next/link";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
-import { Avatar } from "@/components/Avatar";
+import { BrainCardHero } from "@/components/BrainCardHero";
 import { ScanCard } from "@/components/ScanCard";
 
 type FounderSignal = {
@@ -50,8 +50,8 @@ export default function ProfilePage() {
   const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
   const [userName, setUserName] = useState("");
   const [publicProfile, setPublicProfile] = useState<PublicProfileFields | undefined>(undefined);
-  const [viewerCard, setViewerCard] = useState<BrainCard | null>(null);
-  const [pairCompatibility, setPairCompatibility] = useState<number | null>(null);
+  const [connStatus, setConnStatus] = useState<string>("none");
+  const [connecting, setConnecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [shareCopied, setShareCopied] = useState(false);
@@ -128,25 +128,29 @@ export default function ProfilePage() {
 
   // Pull the viewer's own brain card if they're signed in and viewing someone else.
   // Powers the MatchPanel comparison view.
+  // Connection status — the full Brain Card unlocks only when both connect.
   useEffect(() => {
-    if (!user || user.id === userId) {
-      setViewerCard(null);
-      setPairCompatibility(null);
-      return;
-    }
-    fetch(`${API_BASE_URL}/api/profile/${user.id}/public-card`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.brain_card) setViewerCard(data.brain_card);
+    if (!user || user.id === userId) return;
+    authedFetch(`${API_BASE_URL}/api/match/connections`)
+      .then((r) => (r.ok ? r.json() : { connections: [] }))
+      .then((d) => {
+        const c = (d.connections || []).find((x: { other_user_id: string }) => x.other_user_id === userId);
+        setConnStatus(c?.status || "none");
       })
-      .catch(() => setViewerCard(null));
-
-    // Same blended compatibility the matches list shows, so the two agree.
-    authedFetch(`${API_BASE_URL}/api/match/score/${userId}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => setPairCompatibility(typeof d?.compatibility === "number" ? d.compatibility : null))
-      .catch(() => setPairCompatibility(null));
+      .catch(() => {});
   }, [user, userId]);
+
+  const connect = async () => {
+    if (!user) return;
+    setConnecting(true);
+    try {
+      const r = await authedFetch(`${API_BASE_URL}/api/match/${userId}/connect`, { method: "POST" });
+      const d = await r.json();
+      setConnStatus(d.status || "pending_outgoing");
+    } catch { /* ignore */ } finally {
+      setConnecting(false);
+    }
+  };
 
   return (
     <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen">
@@ -211,41 +215,53 @@ export default function ProfilePage() {
         ) : (
           <>
             {/* Identity header */}
-            <div className="flex items-center gap-4 mb-6">
-              <Avatar
-                url={publicProfile?.avatar_url ?? (user?.user_metadata?.avatar_url as string | undefined)}
-                name={userName || "You"}
-                size={72}
-              />
-              <div className="min-w-0">
-                <h1 className="text-2xl font-bold truncate" style={{ color: "var(--text-primary)" }}>
-                  {userName || "Brain Card"}
-                </h1>
-                <div className="flex flex-wrap items-center gap-x-2 mt-1 text-xs" style={{ color: "var(--text-secondary)" }}>
-                  {publicProfile?.city && <span>{publicProfile.city}</span>}
-                  {publicProfile?.school && <span>· {publicProfile.school}</span>}
-                  {vaultQuality?.score != null && <span>· {vaultQuality.score}% confidence</span>}
-                </div>
-                {(() => {
-                  const gh = !!publicProfile?.github, li = !!publicProfile?.linkedin, ig = !!publicProfile?.instagram;
-                  const verified = gh && li;
-                  const tags = [gh && "GitHub", li && "LinkedIn", ig && "Instagram"].filter(Boolean).join(" · ");
-                  return (
-                    <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full text-[11px] border"
-                      style={{ borderColor: verified ? "rgba(16,185,129,0.4)" : "var(--border)", color: verified ? "#34d399" : "var(--text-secondary)" }}>
-                      <ShieldCheck size={11} /> {tags || "Unverified"}
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-
-            {/* The whole-person Brain Card */}
-            <ScanCard
-              domain="brainscan"
-              sections={brainCard?.sections || {}}
+            {/* Cool summary card — always visible */}
+            <BrainCardHero
+              name={userName || "Brain Card"}
               signal={brainCard?.founder_signal}
+              brainConfidence={vaultQuality?.score ?? null}
+              avatarUrl={publicProfile?.avatar_url ?? (user?.user_metadata?.avatar_url as string | undefined)}
+              profile={{
+                city: publicProfile?.city,
+                school: publicProfile?.school,
+                github: publicProfile?.github,
+                linkedin: publicProfile?.linkedin,
+                instagram: publicProfile?.instagram,
+              }}
             />
+
+            {/* Full brain scan — unlocked for you, or once you both connect */}
+            {user?.id === userId || connStatus === "connected" ? (
+              <div className="mt-6">
+                <ScanCard domain="brainscan" sections={brainCard?.sections || {}} />
+              </div>
+            ) : (
+              <div className="mt-6 p-8 rounded-2xl border text-center" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
+                <Lock size={26} className="mx-auto mb-3" style={{ color: "var(--accent)" }} />
+                <h3 className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                  {(userName || "Their").split(" ")[0]}&apos;s full Brain Card is private
+                </h3>
+                <p className="text-sm max-w-sm mx-auto mb-5" style={{ color: "var(--text-secondary)" }}>
+                  The full six-section scan unlocks once you both connect.
+                </p>
+                {!user ? (
+                  <Link href="/auth" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm" style={{ backgroundColor: "var(--accent)", color: "white" }}>
+                    Sign in to connect <ArrowRight size={14} />
+                  </Link>
+                ) : connStatus === "pending_outgoing" ? (
+                  <span className="text-sm" style={{ color: "var(--text-secondary)" }}>Request sent — unlocks when they accept.</span>
+                ) : (
+                  <button
+                    onClick={connect}
+                    disabled={connecting}
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm disabled:opacity-50"
+                    style={{ backgroundColor: "var(--accent)", color: "white" }}
+                  >
+                    {connecting ? "Connecting…" : connStatus === "pending_incoming" ? "Accept & unlock" : "Connect to unlock"} <ArrowRight size={14} />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Conversion CTA — only shown to visitors, not the profile owner */}
             {user?.id !== userId && (

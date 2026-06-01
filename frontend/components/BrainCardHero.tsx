@@ -1,78 +1,55 @@
 "use client";
 
-import { useState } from "react";
 import { ShieldCheck, ShieldAlert } from "lucide-react";
-import { computeRank, TIER_INFO } from "@/lib/founder-rank";
-import type { Tier } from "@/lib/fake-users";
-import { SignalExplainerModal } from "@/components/SignalExplainerModal";
 import { Avatar } from "@/components/Avatar";
-import type { SignalKey } from "@/lib/signal-research";
 
-type Grade = "low" | "medium" | "high";
-type FounderSignal = {
-  domain_obsession?: Grade;
-  emotional_stability_signal?: Grade;
-  shipped_before?: boolean;
-  market_orientation?: string;
-  implied_intelligence?: Grade;
-};
+type Signal = Record<string, string | boolean>;
 
 type ProfileFields = {
-  full_name?: string;
-  age?: string;
   city?: string;
   school?: string;
   github?: string;
   linkedin?: string;
-  twitter?: string;
-  website?: string;
-  gender?: string;
-  github_quality?: Grade;
+  instagram?: string;
 };
 
 interface BrainCardHeroProps {
   name: string;
-  founderSignal?: FounderSignal;
+  signal?: Signal;
   brainConfidence?: number | null;
   profile?: ProfileFields;
   avatarUrl?: string | null;
   variant?: "full" | "compact";
 }
 
-type PillSpec = { key: SignalKey; label: string; value: string };
-
-function pillsFrom(s: FounderSignal | undefined): PillSpec[] {
-  if (!s) return [];
-  const out: PillSpec[] = [];
-  if (s.domain_obsession)
-    out.push({ key: "domain_obsession", label: "Domain obsession", value: s.domain_obsession });
-  if (s.shipped_before !== undefined)
-    out.push({ key: "shipped_before", label: "Shipped before", value: s.shipped_before ? "yes" : "no" });
-  if (s.market_orientation)
-    out.push({ key: "market_orientation", label: "Market", value: s.market_orientation });
-  if (s.emotional_stability_signal)
-    out.push({ key: "emotional_stability_signal", label: "Emotional stability", value: s.emotional_stability_signal });
-  if (s.implied_intelligence)
-    out.push({ key: "implied_intelligence", label: "Implied intelligence", value: s.implied_intelligence });
-  return out;
+function humanize(k: string): string {
+  const s = k.replace(/_/g, " ");
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+function valueLabel(v: string | boolean): string {
+  return typeof v === "boolean" ? (v ? "yes" : "no") : v;
+}
+
+/**
+ * The "cool" Brain Card summary — gradient hero with avatar, signal pills,
+ * confidence, and verification. Whole-person (no founder rank/tier). The full
+ * scan sections live in a separate ScanCard, gated by connection.
+ */
 export function BrainCardHero({
   name,
-  founderSignal,
+  signal,
   brainConfidence,
   profile,
   avatarUrl,
   variant = "full",
 }: BrainCardHeroProps) {
-  const rankInfo = computeRank(founderSignal, profile);
-  const tier: Tier = rankInfo.tier;
-  const tierColor = TIER_INFO[tier].color;
-  const tierDescription = TIER_INFO[tier].description;
-  const pills = pillsFrom(founderSignal);
   const compact = variant === "compact";
+  const pills = signal ? Object.entries(signal) : [];
 
-  const [explain, setExplain] = useState<{ key: SignalKey; value: string } | null>(null);
+  const gh = !!profile?.github, li = !!profile?.linkedin, ig = !!profile?.instagram;
+  const verified = gh && li;
+  const tags = [gh && "GitHub", li && "LinkedIn", ig && "Instagram"].filter(Boolean).join(" · ");
 
   return (
     <div
@@ -90,64 +67,35 @@ export function BrainCardHero({
       <div className="flex items-center gap-3 mb-6">
         <div
           className="flex items-center justify-center font-bold"
-          style={{
-            width: compact ? 32 : 40,
-            height: compact ? 32 : 40,
-            borderRadius: 10,
-            backgroundColor: "#10b981",
-            fontSize: compact ? 16 : 20,
-          }}
+          style={{ width: compact ? 32 : 40, height: compact ? 32 : 40, borderRadius: 10, backgroundColor: "#10b981", fontSize: compact ? 16 : 20 }}
         >
           BS
         </div>
-        <div className="font-semibold" style={{ fontSize: compact ? 16 : 18 }}>
-          BrainScan
-        </div>
-        <div className="ml-auto" style={{ color: "#94a3b8", fontSize: compact ? 13 : 14 }}>
-          Brain Card
-        </div>
+        <div className="font-semibold" style={{ fontSize: compact ? 16 : 18 }}>BrainScan</div>
+        <div className="ml-auto" style={{ color: "#94a3b8", fontSize: compact ? 13 : 14 }}>Brain Card</div>
       </div>
 
       {/* Identity row */}
       <div className="flex items-center gap-5 mb-6">
-        <Avatar
-          url={avatarUrl}
-          name={name}
-          size={compact ? 64 : 96}
-          color="#10b981"
-          textColor="#ffffff"
-        />
+        <Avatar url={avatarUrl} name={name} size={compact ? 64 : 96} color="#10b981" textColor="#ffffff" />
         <div className="flex flex-col gap-1 min-w-0">
-          <div
-            className="font-bold leading-tight truncate"
-            style={{ fontSize: compact ? 28 : 44 }}
-          >
-            {name}
-          </div>
-          <div
-            className="flex items-center gap-2"
-            style={{ color: "#cbd5e1", fontSize: compact ? 14 : 18 }}
-          >
-            <span>Rank {rankInfo.rank}/10 ·</span>
-            <span style={{ color: tierColor, fontWeight: 600 }}>{tier}</span>
-          </div>
-          {!compact && (
-            <div className="text-xs mt-1" style={{ color: "#94a3b8" }}>
-              {tierDescription}
+          <div className="font-bold leading-tight truncate" style={{ fontSize: compact ? 28 : 44 }}>{name}</div>
+          {(profile?.city || profile?.school) && (
+            <div className="flex flex-wrap items-center gap-x-2 text-sm" style={{ color: "#cbd5e1" }}>
+              {profile?.city && <span>{profile.city}</span>}
+              {profile?.school && <span>· {profile.school}</span>}
             </div>
           )}
         </div>
       </div>
 
-      {/* Signal pills — tappable, opens research explainer */}
+      {/* Signal pills */}
       {pills.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">
-          {pills.map((p) => (
-            <button
-              key={p.label}
-              type="button"
-              onClick={() => setExplain({ key: p.key, value: p.value })}
-              className="flex items-center gap-2 rounded-full border transition-colors cursor-pointer hover:opacity-90"
+          {pills.map(([k, v]) => (
+            <span
+              key={k}
+              className="flex items-center gap-2 rounded-full border"
               style={{
                 padding: compact ? "6px 12px" : "8px 16px",
                 borderColor: "rgba(148,163,184,0.35)",
@@ -155,61 +103,39 @@ export function BrainCardHero({
                 fontSize: compact ? 12 : 14,
                 color: "white",
               }}
-              title={`Learn what "${p.label}" means`}
             >
-              <span style={{ color: "#94a3b8" }}>{p.label}:</span>
-              <span className="font-semibold">{p.value}</span>
-            </button>
+              <span style={{ color: "#94a3b8" }}>{humanize(k)}:</span>
+              <span className="font-semibold">{valueLabel(v)}</span>
+            </span>
           ))}
         </div>
       )}
 
       {/* Brain confidence */}
       {brainConfidence != null && (
-        <div
-          className="flex items-center gap-2"
-          style={{ color: "#94a3b8", fontSize: compact ? 13 : 15 }}
-        >
+        <div className="flex items-center gap-2" style={{ color: "#94a3b8", fontSize: compact ? 13 : 15 }}>
           <span>Brain confidence</span>
-          <span className="font-bold" style={{ color: tierColor }}>
-            {brainConfidence}%
-          </span>
+          <span className="font-bold" style={{ color: "#34d399" }}>{brainConfidence}%</span>
         </div>
       )}
 
-      {/* Verification — GitHub + LinkedIn raise credibility; unverified lowers it */}
-      {profile && (() => {
-        const gh = !!profile.github;
-        const li = !!profile.linkedin;
-        const verified = gh && li;
-        const missing = [!gh && "GitHub", !li && "LinkedIn"].filter(Boolean).join(" & ");
-        return (
-          <div
-            className="inline-flex items-center gap-2 mt-3 rounded-full border"
-            style={{
-              padding: compact ? "5px 11px" : "6px 13px",
-              fontSize: compact ? 11 : 12.5,
-              borderColor: verified ? "rgba(16,185,129,0.4)" : "rgba(245,158,11,0.4)",
-              backgroundColor: verified ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
-              color: verified ? "#34d399" : "#fbbf24",
-            }}
-          >
-            {verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
-            <span className="font-semibold">{verified ? "Verified founder" : "Unverified"}</span>
-            <span style={{ color: "#94a3b8" }}>
-              {verified
-                ? "GitHub + LinkedIn connected"
-                : `Connect ${missing} to boost credibility`}
-            </span>
-          </div>
-        );
-      })()}
-
-      <SignalExplainerModal
-        signalKey={explain?.key ?? null}
-        value={explain?.value ?? null}
-        onClose={() => setExplain(null)}
-      />
+      {/* Verification */}
+      {profile && (
+        <div
+          className="inline-flex items-center gap-2 mt-3 rounded-full border"
+          style={{
+            padding: compact ? "5px 11px" : "6px 13px",
+            fontSize: compact ? 11 : 12.5,
+            borderColor: verified ? "rgba(16,185,129,0.4)" : "rgba(245,158,11,0.4)",
+            backgroundColor: verified ? "rgba(16,185,129,0.12)" : "rgba(245,158,11,0.12)",
+            color: verified ? "#34d399" : "#fbbf24",
+          }}
+        >
+          {verified ? <ShieldCheck size={13} /> : <ShieldAlert size={13} />}
+          <span className="font-semibold">{verified ? "Verified" : "Unverified"}</span>
+          <span style={{ color: "#94a3b8" }}>{tags || "Connect GitHub / LinkedIn / Instagram"}</span>
+        </div>
+      )}
     </div>
   );
 }

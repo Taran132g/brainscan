@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Users, ScanLine } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ScanCard } from "@/components/ScanCard";
+import { BrainCardHero } from "@/components/BrainCardHero";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 
 type VaultQuality = {
@@ -85,12 +86,23 @@ export default function DashboardOverview() {
 
       {hasBrainCard ? (
         <>
-          {/* The whole-person Brain Card */}
-          <ScanCard
-            domain="brainscan"
-            sections={brainCard!.sections}
+          {/* Cool summary card */}
+          <BrainCardHero
+            name={displayName || "You"}
             signal={brainCard?.founder_signal || (brainCard as { signal?: Record<string, string | boolean> })?.signal}
+            brainConfidence={vaultQuality?.score ?? null}
+            avatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
+            profile={{
+              city: user?.user_metadata?.city as string | undefined,
+              school: user?.user_metadata?.school as string | undefined,
+              github: user?.user_metadata?.github as string | undefined,
+              linkedin: user?.user_metadata?.linkedin as string | undefined,
+              instagram: user?.user_metadata?.instagram as string | undefined,
+            }}
           />
+
+          {/* Full brain scan — your own, always visible */}
+          <ScanCard domain="brainscan" sections={brainCard!.sections} />
 
           {vaultQuality && (
             <p className="-mt-2 text-xs" style={{ color: "var(--text-secondary)" }}>
