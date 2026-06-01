@@ -29,6 +29,9 @@ class ScanDomain:
     section_titles: dict
     # The payload key holding the structured signal object for this domain
     signal_key: str
+    # The section key whose text represents "what would complement this person"
+    # (used to build the needs vector for complementary matching)
+    needs_section_key: str = ""
     sensitivity: str = "low"        # low | medium | high
     disclaimer: str = ""            # shown in UI for sensitive domains
 
@@ -134,6 +137,7 @@ FOUNDER = ScanDomain(
     tool_schema=_FOUNDER_TOOL,
     section_titles=_FOUNDER_SECTION_TITLES,
     signal_key="founder_signal",
+    needs_section_key="what_they_need_in_cofounder",
     sensitivity="low",
 )
 
@@ -224,6 +228,7 @@ CAREER = ScanDomain(
         "ideal_next_role": "Ideal Next Role",
     },
     signal_key="career_signal",
+    needs_section_key="growth_areas",
     sensitivity="low",
 )
 
@@ -319,6 +324,7 @@ RELATIONSHIPS = ScanDomain(
         "what_they_need": "What They Need",
     },
     signal_key="relationship_signal",
+    needs_section_key="what_they_need",
     sensitivity="medium",
     disclaimer=_REL_DISCLAIMER,
 )

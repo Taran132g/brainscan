@@ -13,9 +13,20 @@ from fastapi.responses import JSONResponse
 from services.auth import get_current_user_id
 from services.scan_domains import DOMAINS, get_domain
 from services.brain_card import generate_brain_card
-from services.db import record_scan, get_latest_scans, get_scan_timeline
+from services.db import record_scan, get_latest_scans, get_scan_timeline, get_client
+from services.match_service import upsert_scan_match_vectors, find_domain_matches
 
 router = APIRouter()
+
+
+def _profile_meta(user_id: str) -> dict:
+    try:
+        res = get_client().table("profiles").select(
+            "full_name, city, school, avatar_url"
+        ).eq("id", user_id).limit(1).execute()
+        return (res.data or [{}])[0]
+    except Exception:
+        return {}
 
 
 @router.get("/scan/domains")
@@ -48,6 +59,7 @@ async def run_scans(body: dict = Body(default={}), user_id: str = Depends(get_cu
             status_code=400,
         )
 
+    meta = _profile_meta(user_id)
     results: dict = {}
     for d in valid:
         try:
@@ -58,6 +70,8 @@ async def run_scans(body: dict = Body(default={}), user_id: str = Depends(get_cu
                 results[d] = {"error": "No vault content found — upload your digital brain first."}
                 continue
             record_scan(user_id, d, sections, signal)
+            # Make this scan matchable — embed it into the per-domain people pool.
+            upsert_scan_match_vectors(user_id, d, {"sections": sections, "signal": signal}, meta)
             dom = get_domain(d)
             results[d] = {
                 "domain": d,
@@ -76,6 +90,25 @@ async def run_scans(body: dict = Body(default={}), user_id: str = Depends(get_cu
 async def latest_scans(user_id: str = Depends(get_current_user_id)):
     """Latest scan per domain for the caller."""
     return JSONResponse({"latest": get_latest_scans(user_id)})
+
+
+@router.get("/scan/people")
+async def scan_people(
+    domain: str = Query(...),
+    mode: str = Query("similar", description="similar | complementary"),
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    People to meet in a domain, based on brain scans:
+      similar       — minds like yours
+      complementary — minds that fill your gaps
+    Empty until the caller has run their own scan for this domain.
+    """
+    if domain not in DOMAINS:
+        return JSONResponse({"detail": "Unknown domain"}, status_code=400)
+    mode = mode if mode in ("similar", "complementary") else "similar"
+    people = find_domain_matches(user_id, domain, mode=mode, top_k=12)
+    return JSONResponse({"domain": domain, "mode": mode, "people": people})
 
 
 def _diff_signals(prev: dict, curr: dict) -> list:

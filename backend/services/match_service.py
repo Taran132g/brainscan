@@ -27,6 +27,7 @@ from typing import List, Optional
 
 from services.embedder import _embed
 from services.vector_store import _get_index
+from services.scan_domains import get_domain
 
 
 PROFILE_NAMESPACE = "match_profiles"
@@ -544,3 +545,116 @@ def filter_and_sort(
         )
 
     return out
+
+
+# ============================================================
+# Domain people-matching — "meet similar (or complementary) people"
+# on their career / relationships / founder scan. One profile vector +
+# one needs vector per (user, domain), in scan_<domain>_{profile,needs}.
+# ============================================================
+
+def _scan_profile_ns(domain: str) -> str:
+    return f"scan_{domain}_profile"
+
+
+def _scan_needs_ns(domain: str) -> str:
+    return f"scan_{domain}_needs"
+
+
+def upsert_scan_match_vectors(user_id: str, domain: str, card: dict, profile_meta: dict) -> bool:
+    """Embed a user's domain scan into the per-domain match namespaces.
+    profile vector = the whole persona; needs vector = the domain's 'needs' section."""
+    try:
+        dom = get_domain(domain)
+        sections = card.get("sections") or {}
+        if not sections:
+            return False
+        profile_text = "\n\n".join(f"{t}: {v}" for t, v in sections.items() if v)
+        needs_title = dom.section_titles.get(dom.needs_section_key) if dom.needs_section_key else None
+        needs_text = (sections.get(needs_title) if needs_title else "") or profile_text
+
+        profile_vec, needs_vec = _embed([profile_text, needs_text], input_type="passage")
+        meta = _strip_nulls({
+            "user_id": user_id,
+            "domain": domain,
+            "name": profile_meta.get("full_name") or "Someone",
+            "city": profile_meta.get("city") or "",
+            "avatar_url": profile_meta.get("avatar_url") or "",
+            "school": profile_meta.get("school") or "",
+            "preview": (next(iter(sections.values()), "") or "")[:300],
+        })
+        index = _get_index()
+        index.upsert(vectors=[{"id": user_id, "values": profile_vec, "metadata": meta}], namespace=_scan_profile_ns(domain))
+        index.upsert(vectors=[{"id": user_id, "values": needs_vec, "metadata": meta}], namespace=_scan_needs_ns(domain))
+        return True
+    except Exception as e:
+        print(f"[match] upsert_scan_match_vectors failed: {e}")
+        return False
+
+
+def _vec_of(obj):
+    if not obj:
+        return None
+    return obj["values"] if isinstance(obj, dict) else obj.values
+
+
+def find_domain_matches(user_id: str, domain: str, mode: str = "similar", top_k: int = 12) -> List[dict]:
+    """
+    People in `domain` ranked by:
+      similar       — nearest neighbors to the caller's scan persona
+      complementary — Hinge-style mutual fit (my needs ↔ their persona, both ways)
+    Returns [] if the caller has no scan vector for the domain yet.
+    """
+    index = _get_index()
+    pns, nns = _scan_profile_ns(domain), _scan_needs_ns(domain)
+
+    mine_p = index.fetch(ids=[user_id], namespace=pns).vectors if True else None
+    my_profile_vec = _vec_of((mine_p or {}).get(user_id))
+    if my_profile_vec is None:
+        return []
+
+    if mode == "complementary":
+        mine_n = index.fetch(ids=[user_id], namespace=nns).vectors
+        my_needs_vec = _vec_of((mine_n or {}).get(user_id)) or my_profile_vec
+        query_vec = my_needs_vec
+    else:
+        query_vec = my_profile_vec
+
+    res = index.query(vector=query_vec, namespace=pns, top_k=min(top_k * 3, 60), include_metadata=True)
+    cand_ids, a_to_b, metas = [], {}, {}
+    for m in res.matches:
+        if m.id == user_id:
+            continue
+        cand_ids.append(m.id)
+        a_to_b[m.id] = float(m.score)
+        metas[m.id] = dict(m.metadata or {})
+        if len(cand_ids) >= top_k * 2:
+            break
+    if not cand_ids:
+        return []
+
+    scored = []
+    if mode == "complementary":
+        needs_lookup = index.fetch(ids=cand_ids, namespace=nns).vectors or {}
+        for cid in cand_ids:
+            tn = _vec_of(needs_lookup.get(cid))
+            ab = a_to_b.get(cid, 0.0)
+            score = ((ab + _cosine(tn, my_profile_vec)) / 2.0) if tn is not None else ab * 0.7
+            scored.append((cid, score, metas[cid]))
+    else:
+        for cid in cand_ids:
+            scored.append((cid, a_to_b[cid], metas[cid]))
+
+    scored.sort(key=lambda x: -x[1])
+    return [
+        {
+            "user_id": cid,
+            "score": round(s * 100),
+            "name": m.get("name") or "Someone",
+            "city": m.get("city") or "",
+            "avatar_url": m.get("avatar_url") or None,
+            "school": m.get("school") or "",
+            "preview": m.get("preview") or "",
+        }
+        for cid, s, m in scored[:top_k]
+    ]
