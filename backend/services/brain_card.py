@@ -178,10 +178,11 @@ def generate_brain_card(
     domain, for backward compatibility with existing callers).
     """
     dom = get_domain(domain)
+    target = dom.chunk_target
 
     selected: List[dict] = []
     if user_id:
-        selected = _retrieve_chunks(user_id, dom.retrieval_queries, target=40)
+        selected = _retrieve_chunks(user_id, dom.retrieval_queries, target=target)
         if len(selected) < 10:
             print(
                 f"[brain_card] retrieval yielded {len(selected)} chunks; "
@@ -189,7 +190,7 @@ def generate_brain_card(
             )
             selected = []
     if not selected:
-        selected = _sample_diverse_chunks(chunks, target=40)
+        selected = _sample_diverse_chunks(chunks, target=target)
 
     notes = "\n\n---\n\n".join(
         f"[{c['title']} / {c.get('heading', '')}]\n{c['text']}" for c in selected
@@ -198,7 +199,7 @@ def generate_brain_card(
 
     message = _get_client().messages.create(
         model="claude-opus-4-8",
-        max_tokens=2500,
+        max_tokens=3600,
         system=dom.system_prompt,
         tools=[dom.tool_schema],
         tool_choice={"type": "tool", "name": dom.tool_name},

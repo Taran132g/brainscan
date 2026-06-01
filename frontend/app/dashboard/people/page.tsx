@@ -17,25 +17,22 @@ type Person = {
   preview: string;
 };
 
-const DOMAINS = [
-  { id: "career", label: "Career", color: "#3b82f6" },
-  { id: "relationships", label: "Relationships", color: "#ec4899" },
-] as const;
-
 const MODES = [
   { id: "similar", label: "Similar", blurb: "Minds like yours" },
   { id: "complementary", label: "Complementary", blurb: "Minds that fill your gaps" },
 ] as const;
 
+const DOMAIN = "brainscan";
+
 export default function PeoplePage() {
   const { user } = useAuth();
-  const [domain, setDomain] = useState<string>("career");
   const [mode, setMode] = useState<string>("similar");
   const [people, setPeople] = useState<Person[] | null>(null);
   const [scannedDomains, setScannedDomains] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
-  const domainColor = DOMAINS.find((d) => d.id === domain)?.color ?? "var(--accent)";
+  const domain = DOMAIN;
+  const domainColor = "var(--accent)";
 
   // Which domains has the user scanned? (drives the "scan first" empty state)
   useEffect(() => {
@@ -73,26 +70,8 @@ export default function PeoplePage() {
         </p>
       </div>
 
-      {/* Domain switcher */}
+      {/* Similar / complementary toggle */}
       <div className="flex flex-wrap items-center gap-2">
-        {DOMAINS.map((d) => {
-          const active = domain === d.id;
-          return (
-            <button
-              key={d.id}
-              onClick={() => setDomain(d.id)}
-              className="px-4 py-2 rounded-lg text-sm font-medium border transition-colors"
-              style={{
-                borderColor: active ? d.color : "var(--border)",
-                backgroundColor: active ? `${d.color}1f` : "transparent",
-                color: active ? d.color : "var(--text-secondary)",
-              }}
-            >
-              {d.label}
-            </button>
-          );
-        })}
-        <span className="mx-1 h-5 w-px" style={{ backgroundColor: "var(--border)" }} />
         {MODES.map((m) => {
           const active = mode === m.id;
           return (
@@ -122,8 +101,8 @@ export default function PeoplePage() {
         </div>
       ) : !hasScanned ? (
         <EmptyState
-          title={`Run your ${domain} scan first`}
-          body="We match you with people from your own brain scan. Run it once and your people show up here."
+          title="Generate your Brain Card first"
+          body="We match you with people from your own Brain Card. Generate it once and your people show up here."
         />
       ) : !people || people.length === 0 ? (
         <EmptyState
@@ -174,11 +153,11 @@ function EmptyState({ title, body }: { title: string; body: string }) {
       <h2 className="text-base font-semibold mb-2" style={{ color: "var(--text-primary)" }}>{title}</h2>
       <p className="text-sm max-w-md mx-auto mb-6" style={{ color: "var(--text-secondary)" }}>{body}</p>
       <Link
-        href="/dashboard/scans"
+        href="/dashboard/brain-card"
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm"
         style={{ backgroundColor: "var(--accent)", color: "white" }}
       >
-        <ScanLine size={14} /> Go to scans <ArrowRight size={13} />
+        <ScanLine size={14} /> Go to Brain Card <ArrowRight size={13} />
       </Link>
     </div>
   );

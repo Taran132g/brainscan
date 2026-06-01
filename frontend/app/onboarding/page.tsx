@@ -3,24 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Brain, ArrowRight, ArrowLeft, Loader2, Code2, Megaphone, Palette,
-  Microscope, Sparkles, MapPin, GraduationCap, ShieldCheck, Check,
+  Brain, ArrowRight, ArrowLeft, Loader2, Sparkles, MapPin, ShieldCheck, Check,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 
-type Role = "technical" | "business" | "design" | "domain";
-
-const ROLES: { value: Role; label: string; sub: string; icon: React.ReactNode }[] = [
-  { value: "technical", label: "Technical", sub: "I build the product", icon: <Code2 size={22} /> },
-  { value: "business", label: "Business / GTM", sub: "I find the customers", icon: <Megaphone size={22} /> },
-  { value: "design", label: "Design / UX", sub: "I shape how it feels", icon: <Palette size={22} /> },
-  { value: "domain", label: "Domain expert", sub: "I know the industry cold", icon: <Microscope size={22} /> },
-];
-
 // One step per screen — conversational, with a progress bar.
-const TOTAL_STEPS = 6; // 0..4 questions, 5 = teaser
+const TOTAL_STEPS = 5; // 0..3 questions, 4 = teaser
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -29,10 +19,9 @@ export default function OnboardingPage() {
   const [saving, setSaving] = useState(false);
 
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<Role | "">("");
-  const [building, setBuilding] = useState("");
-  const [need, setNeed] = useState("");
+  const [age, setAge] = useState("");
   const [city, setCity] = useState("");
+  const [lookingFor, setLookingFor] = useState("");
 
   // Guard: not signed in → auth. Already onboarded → straight to dashboard.
   useEffect(() => {
@@ -42,7 +31,7 @@ export default function OnboardingPage() {
     if (md.onboarded) { router.replace("/dashboard"); return; }
     // Pre-fill anything we already know
     setFullName((md.full_name as string) || "");
-    setRole((md.role as Role) || "");
+    setAge((md.age as string) || "");
     setCity((md.city as string) || "");
   }, [user, loading, router]);
 
@@ -55,19 +44,18 @@ export default function OnboardingPage() {
       onboarded: true,
       ...(skip ? {} : {
         full_name: fullName || md.full_name,
-        role,
-        building,
-        need,
+        age,
         city: city || md.city,
+        looking_for: lookingFor,
       }),
     };
     await supabase.auth.updateUser({ data });
-    if (!skip && (fullName || city)) {
+    if (!skip && (fullName || city || age)) {
       try {
         await authedFetch(`${API_BASE_URL}/api/profile/me`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ full_name: fullName, city }),
+          body: JSON.stringify({ full_name: fullName, age, city }),
         });
       } catch { /* non-fatal */ }
     }
@@ -84,8 +72,7 @@ export default function OnboardingPage() {
 
   const canAdvance =
     step === 0 ? fullName.trim().length > 0 :
-    step === 1 ? role !== "" :
-    true; // building / need / city are optional but encouraged
+    true; // age / location / looking-for are optional but encouraged
 
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
   const back = () => setStep((s) => Math.max(s - 1, 0));
@@ -136,66 +123,27 @@ export default function OnboardingPage() {
             </Q>
           )}
 
-          {/* Step 1 — Role */}
+          {/* Step 1 — Age */}
           {step === 1 && (
-            <Q label="What's your superpower?" hint="We match complementary co-founders — opposites build best.">
-              <div className="grid grid-cols-2 gap-3">
-                {ROLES.map((r) => {
-                  const active = role === r.value;
-                  return (
-                    <button
-                      key={r.value}
-                      onClick={() => setRole(r.value)}
-                      className="flex flex-col items-start gap-2 p-4 rounded-xl border text-left"
-                      style={{
-                        borderColor: active ? "var(--accent)" : "var(--border)",
-                        backgroundColor: active ? "var(--accent-glow)" : "var(--surface)",
-                        color: active ? "var(--accent)" : "var(--text-primary)",
-                      }}
-                    >
-                      {r.icon}
-                      <span className="font-semibold text-sm">{r.label}</span>
-                      <span className="text-xs" style={{ color: "var(--text-secondary)" }}>{r.sub}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            <Q label="How old are you?" hint="Helps us connect you with people in a similar season of life.">
+              <input
+                autoFocus
+                type="number"
+                min="16"
+                max="99"
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && next()}
+                placeholder="24"
+                className="w-full px-4 py-3 rounded-xl text-lg outline-none border"
+                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+              />
             </Q>
           )}
 
-          {/* Step 2 — Building */}
+          {/* Step 2 — Location */}
           {step === 2 && (
-            <Q label="What are you building (or want to build)?" hint="One line is plenty — your brain card fills in the rest.">
-              <textarea
-                autoFocus
-                value={building}
-                onChange={(e) => setBuilding(e.target.value)}
-                rows={3}
-                placeholder="An AI tool that turns founder notes into co-founder matches…"
-                className="w-full px-4 py-3 rounded-xl text-base outline-none border resize-none"
-                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
-              />
-            </Q>
-          )}
-
-          {/* Step 3 — Need */}
-          {step === 3 && (
-            <Q label="What do you need in a co-founder?" hint="The gap you most want filled.">
-              <textarea
-                autoFocus
-                value={need}
-                onChange={(e) => setNeed(e.target.value)}
-                rows={3}
-                placeholder="Someone who can own GTM and sales while I build…"
-                className="w-full px-4 py-3 rounded-xl text-base outline-none border resize-none"
-                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
-              />
-            </Q>
-          )}
-
-          {/* Step 4 — City */}
-          {step === 4 && (
-            <Q label="Where are you based?" hint="Powers the “nearest founders” sort. City + region is enough.">
+            <Q label="Where are you based?" hint="So we can surface people near you. City + region is enough.">
               <div className="relative">
                 <MapPin size={16} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-secondary)" }} />
                 <input
@@ -211,13 +159,28 @@ export default function OnboardingPage() {
             </Q>
           )}
 
-          {/* Step 5 — Instant value teaser */}
-          {step === 5 && (
-            <TeaserStep name={fullName} role={role || "technical"} building={building} saving={saving} onFinish={() => finish(false)} />
+          {/* Step 3 — Who they want to meet */}
+          {step === 3 && (
+            <Q label="Who do you want to meet?" hint="Optional — your Brain Card figures out the rest from your notes.">
+              <textarea
+                autoFocus
+                value={lookingFor}
+                onChange={(e) => setLookingFor(e.target.value)}
+                rows={3}
+                placeholder="People who think deeply, builders, someone to trade ideas with at 2am…"
+                className="w-full px-4 py-3 rounded-xl text-base outline-none border resize-none"
+                style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)", color: "var(--text-primary)" }}
+              />
+            </Q>
+          )}
+
+          {/* Step 4 — Instant value teaser */}
+          {step === 4 && (
+            <TeaserStep name={fullName} saving={saving} onFinish={() => finish(false)} />
           )}
 
           {/* Nav buttons (hidden on teaser step — it has its own CTA) */}
-          {step < 5 && (
+          {step < 4 && (
             <div className="flex items-center justify-between mt-8">
               <button
                 onClick={back}
@@ -258,8 +221,8 @@ function Q({ label, hint, children }: { label: string; hint?: string; children: 
 // The "see the magic first" moment — a sample brain card + a sample match,
 // clearly labelled as a preview, with the CTA to generate the real one.
 function TeaserStep({
-  name, role, building, saving, onFinish,
-}: { name: string; role: string; building: string; saving: boolean; onFinish: () => void }) {
+  name, saving, onFinish,
+}: { name: string; saving: boolean; onFinish: () => void }) {
   const first = (name || "You").split(" ")[0];
   return (
     <div className="flex flex-col gap-5">
@@ -272,25 +235,11 @@ function TeaserStep({
           Here&apos;s what BrainScan reads from {first}&apos;s brain
         </h1>
         <p className="text-sm mt-2" style={{ color: "var(--text-secondary)" }}>
-          One upload → scans across founder, career &amp; relationships. Here&apos;s a sample founder scan.
+          One scan of your whole self — career, relationships, how you think. Here&apos;s a sample.
         </p>
       </div>
 
-      {/* The three scans */}
-      <div className="flex items-center justify-center gap-2 flex-wrap">
-        {[
-          { label: "Founder", color: "#10b981" },
-          { label: "Career", color: "#3b82f6" },
-          { label: "Relationships", color: "#ec4899" },
-        ].map((d) => (
-          <span key={d.label} className="text-xs px-3 py-1 rounded-full border"
-            style={{ borderColor: `${d.color}55`, color: d.color, backgroundColor: `${d.color}14` }}>
-            {d.label}
-          </span>
-        ))}
-      </div>
-
-      {/* Sample founder scan */}
+      {/* Sample Brain Card */}
       <div className="rounded-2xl border overflow-hidden glow-accent"
         style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
         <div className="p-5 flex items-center gap-3 border-b" style={{ borderColor: "var(--border)" }}>
@@ -300,19 +249,19 @@ function TeaserStep({
           </div>
           <div className="flex-1">
             <div className="font-semibold" style={{ color: "var(--text-primary)" }}>{name || "Your name"}</div>
-            <div className="text-xs capitalize" style={{ color: "var(--text-secondary)" }}>{role} founder · Builder · 7/10</div>
+            <div className="text-xs" style={{ color: "var(--text-secondary)" }}>Brain Card · preview</div>
           </div>
           <span className="text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1"
-            style={{ backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>
-            <ShieldCheck size={10} /> Unverified
+            style={{ backgroundColor: "var(--accent-glow)", color: "var(--accent)" }}>
+            <ShieldCheck size={10} /> Sample
           </span>
         </div>
         <div className="p-5 grid grid-cols-2 gap-3 text-xs">
           {[
-            ["Who they are", building ? building.slice(0, 60) : "A builder turning ideas into shipped products…"],
-            ["How they think", "Systems-first, bias to ship, learns in public…"],
-            ["What they value", "Speed, honesty, compounding focus…"],
-            ["Needs in a co-founder", "Someone who covers the opposite half…"],
+            ["Who they are", "Curious, builds things, learns in public…"],
+            ["How they think", "Systems-first, bias to action, first-principles…"],
+            ["How they connect", "Loyal, direct, deep over wide…"],
+            ["What they're looking for", "People who trade ideas and show up…"],
           ].map(([k, v]) => (
             <div key={k} className="p-3 rounded-lg" style={{ backgroundColor: "var(--background)" }}>
               <div className="font-semibold mb-1" style={{ color: "var(--accent)" }}>{k}</div>
@@ -331,11 +280,11 @@ function TeaserStep({
           <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
             Maya Patel <span className="text-[11px] font-normal" style={{ color: "var(--text-secondary)" }}>· Stanford · Business</span>
           </div>
-          <div className="text-xs" style={{ color: "var(--text-secondary)" }}>Example match — needs a technical co-founder</div>
+          <div className="text-xs" style={{ color: "var(--text-secondary)" }}>Example person you&apos;d click with</div>
         </div>
         <div className="text-right">
           <div className="text-lg font-bold" style={{ color: "var(--accent)" }}>88%</div>
-          <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>compatibility</div>
+          <div className="text-[10px]" style={{ color: "var(--text-secondary)" }}>match</div>
         </div>
       </div>
 
