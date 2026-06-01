@@ -1,10 +1,9 @@
 """
-Multi-domain scans — run any ScanDomain (founder / career / relationships) over
-a user's already-uploaded vault, store the result append-only, and expose the
-longitudinal diff.
+Scans — run a ScanDomain over a user's already-uploaded vault, store the result
+append-only, expose the longitudinal diff, and surface people to meet.
 
-`/upload` remains the founder scan. This parallel surface adds the other lenses
-without touching the existing flow or matching.
+`/upload` generates the whole-person Brain Card; this surface lets the user
+re-run it (and powers /scan/people) without touching the upload flow.
 """
 
 from fastapi import APIRouter, Depends, Body, Query

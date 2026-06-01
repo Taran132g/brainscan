@@ -163,19 +163,20 @@ def generate_brain_card(
     chunks: List[dict],
     external_signals: dict | None = None,
     user_id: str | None = None,
-    domain: str = "founder",
+    domain: str = "brainscan",
 ) -> dict:
     """
     Generate a structured brain card for the given scan `domain` (default
-    "founder" — identical to the original behavior). The domain config decides
-    the retrieval queries, prompt, tool schema, sections, and signal block, so
-    the same engine produces a founder / career / relationships card.
+    "brainscan" — the whole-person card). The domain config decides the
+    retrieval queries, prompt, tool schema, sections, and signal block, so the
+    same engine produces any domain's card.
 
     Chunk selection is retrieval-driven when `user_id` is provided, falling back
     to flat diversity sampling over `chunks` if retrieval is thin.
 
-    Returns {sections, signal, raw, domain} (+ founder_signal for the founder
-    domain, for backward compatibility with existing callers).
+    Returns {sections, signal, raw, domain}. `founder_signal` is mirrored from
+    `signal` for backward compatibility — the persistence + UI layers read the
+    `founder_signal` key (and the reused `profiles.founder_signal` column).
     """
     dom = get_domain(domain)
     target = dom.chunk_target
@@ -230,7 +231,7 @@ def generate_brain_card(
         "raw": payload,
         "domain": dom.id,
     }
-    if dom.id == "founder":
-        # Back-compat: existing callers (upload, profile, matching) read founder_signal
-        result["founder_signal"] = signal
+    # Back-compat: callers (upload, profile, matching) read `founder_signal`,
+    # and the reused `profiles.founder_signal` column stores it for every domain.
+    result["founder_signal"] = signal
     return result

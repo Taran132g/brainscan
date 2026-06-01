@@ -185,11 +185,11 @@ function ConnectionsInner() {
           </div>
 
           <Link
-            href="/dashboard/matches"
+            href="/dashboard/people"
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm"
             style={{ backgroundColor: "var(--accent)", color: "white" }}
           >
-            Browse matches <ArrowRight size={14} />
+            Browse people <ArrowRight size={14} />
           </Link>
         </div>
       )}

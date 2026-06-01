@@ -126,8 +126,6 @@ export default function ProfilePage() {
       });
   }, [userId]);
 
-  // Pull the viewer's own brain card if they're signed in and viewing someone else.
-  // Powers the MatchPanel comparison view.
   // Connection status — the full Brain Card unlocks only when both connect.
   useEffect(() => {
     if (!user || user.id === userId) return;
