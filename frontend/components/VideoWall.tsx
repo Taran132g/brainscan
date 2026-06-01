@@ -30,7 +30,7 @@ function ShortCard({ url, caption }: { url: string; caption: string }) {
 
   return (
     <div
-      className="w-full max-w-[270px] overflow-hidden rounded-2xl border card-hover"
+      className="w-[260px] shrink-0 overflow-hidden rounded-2xl border card-hover"
       style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
     >
       {/* 9:16 vertical player, matching the PAIS render cards */}

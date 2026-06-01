@@ -2,6 +2,7 @@ import { Brain, Zap, Shield, ArrowRight, Users, Download, Sparkles, Briefcase, H
 import { SmartCta } from "@/components/SmartCta";
 import { BrainGridBackground } from "@/components/BrainGridBackground";
 import { ScanCard } from "@/components/ScanCard";
+import { BrainCardHero } from "@/components/BrainCardHero";
 import { Reveal } from "@/components/Reveal";
 import { VideoWall } from "@/components/VideoWall";
 
@@ -229,6 +230,15 @@ export default function Home() {
           </div>
         </Reveal>
         <Reveal>
+          <BrainCardHero
+            name="Alex Rivera"
+            signal={{ openness: "high", drive: "high", communication_style: "direct", social_energy: "ambivert", emotional_openness: "medium" }}
+            brainConfidence={86}
+            avatarUrl={null}
+            profile={{ city: "San Francisco", school: "Stanford", github: "alexr", linkedin: "alexrivera", instagram: "alex.rivera" }}
+          />
+        </Reveal>
+        <Reveal className="block mt-6">
           <ScanCard
             domain="brainscan"
             sections={{
