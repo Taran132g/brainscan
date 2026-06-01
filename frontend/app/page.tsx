@@ -232,7 +232,7 @@ export default function Home() {
         <Reveal>
           <BrainCardHero
             name="Alex Rivera"
-            signal={{ openness: "high", drive: "high", communication_style: "direct", social_energy: "ambivert", emotional_openness: "medium" }}
+            signal={{ openness: "high", drive: "high", communication_style: "direct", social_energy: "ambivert", emotional_openness: "medium", connection_style: "secure", conflict_style: "collaborative", core_motivation: "mastery" }}
             brainConfidence={86}
             avatarUrl={null}
             profile={{ city: "San Francisco", school: "Stanford", github: "alexr", linkedin: "alexrivera", instagram: "alex.rivera" }}
@@ -249,7 +249,7 @@ export default function Home() {
               "Values & What Drives Them": "Honesty, momentum, and craft. Motivated by making something real, by people who push back, and by the discomfort of not yet being good enough at the thing they care about most.",
               "What They're Looking For": "People who trade ideas at 2am, builders mid-leap, and friends who show up. Open to minds like theirs — and to the ones who fill the gaps they keep writing around.",
             }}
-            signal={{ openness: "high", drive: "high", communication_style: "direct", social_energy: "ambivert", emotional_openness: "medium" }}
+            signal={{ openness: "high", drive: "high", communication_style: "direct", social_energy: "ambivert", emotional_openness: "medium", connection_style: "secure", conflict_style: "collaborative", core_motivation: "mastery" }}
           />
         </Reveal>
         <p className="text-center text-xs mt-4" style={{ color: "var(--text-muted)" }}>

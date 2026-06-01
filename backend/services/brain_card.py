@@ -200,7 +200,7 @@ def generate_brain_card(
 
     message = _get_client().messages.create(
         model="claude-opus-4-8",
-        max_tokens=3600,
+        max_tokens=4800,
         system=dom.system_prompt,
         tools=[dom.tool_schema],
         tool_choice={"type": "tool", "name": dom.tool_name},
