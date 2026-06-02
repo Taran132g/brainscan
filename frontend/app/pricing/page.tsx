@@ -3,96 +3,30 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Brain, Check, ArrowRight, ArrowLeft, Loader2, Sparkles, Repeat } from "lucide-react";
+import { Brain, Check, ArrowRight, ArrowLeft, Loader2, Github } from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
-type Product = "brain_card" | "full_membership" | "extra_upload" | "upgrade";
-
-const TIERS: {
-  product: Product;
-  name: string;
-  price: string;
-  cadence: string;
-  highlight?: boolean;
-  features: { text: string; included: boolean }[];
-  cta: string;
-}[] = [
-  {
-    product: "brain_card",
-    name: "Brain Card",
-    price: "$0.99",
-    cadence: "one-time",
-    features: [
-      { text: "Full brain card analysis", included: true },
-      { text: "5 founder signals (rank, intelligence, etc.)", included: true },
-      { text: "Public shareable profile link", included: true },
-      { text: "Matching access", included: false },
-      { text: "AI build suggestions", included: false },
-      { text: "Monthly upload quota", included: false },
-    ],
-    cta: "Get your brain card",
-  },
-  {
-    product: "full_membership",
-    name: "Full Membership",
-    price: "$3.99",
-    cadence: "per month",
-    highlight: true,
-    features: [
-      { text: "Everything in Brain Card", included: true },
-      { text: "AI-suggested matches", included: true },
-      { text: "AI \"what to build together\" briefings", included: true },
-      { text: "Hinge-style opt-in messaging", included: true },
-      { text: "2 free re-uploads per month", included: true },
-      { text: "$0.99 per additional upload", included: true },
-    ],
-    cta: "Become a member",
-  },
-];
-
-const EXTRAS: {
-  product: Product;
-  name: string;
-  price: string;
-  description: string;
-  icon: React.ReactNode;
-}[] = [
-  {
-    product: "extra_upload",
-    name: "Extra upload",
-    price: "$0.99",
-    description: "Re-run the analysis on an updated vault.",
-    icon: <Repeat size={16} />,
-  },
-  {
-    product: "upgrade",
-    name: "Upgrade to Full",
-    price: "$3.00",
-    description: "Move from Brain Card to Full Membership. Pays the delta.",
-    icon: <Sparkles size={16} />,
-  },
-];
-
+const REPO_URL = "https://github.com/Taran132g/FindingFounders";
 
 export default function PricingPage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-  const [busyProduct, setBusyProduct] = useState<Product | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const startCheckout = async (product: Product) => {
+  const buyScan = async () => {
     if (!user) {
       router.push(`/auth?next=/pricing`);
       return;
     }
-    setBusyProduct(product);
+    setBusy(true);
     setError("");
     try {
       const res = await authedFetch(`${API_BASE_URL}/api/payment/create-checkout`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product }),
+        body: JSON.stringify({ product: "brain_card" }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -103,7 +37,7 @@ export default function PricingPage() {
       window.location.href = url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong starting checkout.");
-      setBusyProduct(null);
+      setBusy(false);
     }
   };
 
@@ -119,116 +53,117 @@ export default function PricingPage() {
         </Link>
       </nav>
 
-      <div className="max-w-5xl mx-auto px-6 py-16">
+      <div className="max-w-3xl mx-auto px-6 py-16">
         <header className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium mb-5 border"
             style={{ borderColor: "var(--accent)", color: "var(--accent)", backgroundColor: "var(--accent-glow)" }}>
-            Honest pricing
+            Simple pricing
           </div>
           <h1 className="text-4xl font-bold mb-3" style={{ color: "var(--text-primary)" }}>
-            These fees cover our costs
+            Two ways to get your Brain Card
           </h1>
           <p className="text-sm max-w-xl mx-auto" style={{ color: "var(--text-secondary)" }}>
-            Every brain card runs Claude Opus + Pinecone embeddings. The fees keep the lights on — everything else (matching, discovery, profile) stays free.
+            Let us run it for $2, or run the open-source scan yourself for free and store the result here.
+            Either way the card is yours to keep, share, and re-run.
           </p>
         </header>
 
-        {/* Main tiers */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          {TIERS.map((tier) => (
-            <div
-              key={tier.product}
-              className="p-7 rounded-2xl border flex flex-col gap-5"
-              style={{
-                backgroundColor: "var(--surface)",
-                borderColor: tier.highlight ? "var(--accent)" : "var(--border)",
-                boxShadow: tier.highlight ? "0 0 0 1px var(--accent)" : "none",
-              }}
-            >
-              {tier.highlight && (
-                <div className="inline-flex self-start items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold"
-                  style={{ backgroundColor: "var(--accent)", color: "white" }}>
-                  RECOMMENDED
-                </div>
-              )}
-              <div>
-                <h3 className="text-lg font-bold mb-1" style={{ color: "var(--text-primary)" }}>
-                  {tier.name}
-                </h3>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>{tier.price}</span>
-                  <span className="text-sm" style={{ color: "var(--text-secondary)" }}>{tier.cadence}</span>
-                </div>
-              </div>
-
-              <ul className="flex flex-col gap-2.5">
-                {tier.features.map((f, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm">
-                    {f.included ? (
-                      <Check size={14} style={{ color: "#10b981", marginTop: 3, flexShrink: 0 }} />
-                    ) : (
-                      <span className="block w-3.5 h-3.5 mt-0.5 flex-shrink-0" style={{ color: "var(--text-secondary)" }}>—</span>
-                    )}
-                    <span style={{ color: f.included ? "var(--text-primary)" : "var(--text-secondary)" }}>{f.text}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <button
-                onClick={() => startCheckout(tier.product)}
-                disabled={busyProduct !== null || loading}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{ backgroundColor: tier.highlight ? "var(--accent)" : "var(--surface-2)", color: tier.highlight ? "white" : "var(--text-primary)", border: tier.highlight ? "none" : "1px solid var(--border)" }}
-              >
-                {busyProduct === tier.product ? <Loader2 size={14} className="animate-spin" /> : null}
-                {tier.cta}
-                {busyProduct !== tier.product && <ArrowRight size={14} />}
-              </button>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Paid — hosted scan */}
+          <div
+            className="p-7 rounded-2xl border flex flex-col gap-5"
+            style={{ backgroundColor: "var(--surface)", borderColor: "var(--accent)", boxShadow: "0 0 0 1px var(--accent)" }}
+          >
+            <div className="inline-flex self-start items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold"
+              style={{ backgroundColor: "var(--accent)", color: "white" }}>
+              EASIEST
             </div>
-          ))}
-        </div>
-
-        {/* Extras */}
-        <h2 className="text-sm font-semibold mb-3 mt-4" style={{ color: "var(--text-primary)" }}>
-          One-time add-ons
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-10">
-          {EXTRAS.map((e) => (
-            <div
-              key={e.product}
-              className="p-5 rounded-xl border flex items-center justify-between gap-4"
-              style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-0.5" style={{ color: "var(--accent)" }}>{e.icon}</div>
-                <div>
-                  <div className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {e.name} <span className="text-xs ml-1" style={{ color: "var(--text-secondary)" }}>· {e.price}</span>
-                  </div>
-                  <p className="text-xs mt-0.5" style={{ color: "var(--text-secondary)" }}>{e.description}</p>
-                </div>
+            <div>
+              <h3 className="text-lg font-bold mb-1" style={{ color: "var(--text-primary)" }}>Full Brain Scan</h3>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>$2</span>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>one-time</span>
               </div>
-              <button
-                onClick={() => startCheckout(e.product)}
-                disabled={busyProduct !== null}
-                className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium border disabled:opacity-50"
-                style={{ borderColor: "var(--border)", color: "var(--accent)" }}
-              >
-                {busyProduct === e.product ? <Loader2 size={12} className="animate-spin" /> : "Buy"}
-              </button>
             </div>
-          ))}
+            <ul className="flex flex-col gap-2.5">
+              {[
+                "We run the whole comprehensive scan for you",
+                "Whole-person card — 6 sections + 8-signal read",
+                "Public shareable profile link",
+                "Privacy controls — go private or hide sections",
+                "Re-run anytime your notes change",
+              ].map((t, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <Check size={14} style={{ color: "#10b981", marginTop: 3, flexShrink: 0 }} />
+                  <span style={{ color: "var(--text-primary)" }}>{t}</span>
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={buyScan}
+              disabled={busy || loading}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{ backgroundColor: "var(--accent)", color: "white" }}
+            >
+              {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+              Get your brain scan
+              {!busy && <ArrowRight size={14} />}
+            </button>
+          </div>
+
+          {/* Free — self-host */}
+          <div
+            className="p-7 rounded-2xl border flex flex-col gap-5"
+            style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}
+          >
+            <div className="inline-flex self-start items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold"
+              style={{ backgroundColor: "var(--surface-2)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}>
+              FOR TINKERERS
+            </div>
+            <div>
+              <h3 className="text-lg font-bold mb-1" style={{ color: "var(--text-primary)" }}>Run it yourself</h3>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>Free</span>
+                <span className="text-sm" style={{ color: "var(--text-secondary)" }}>your own API keys</span>
+              </div>
+            </div>
+            <ul className="flex flex-col gap-2.5">
+              {[
+                "Clone the open-source repo",
+                "Run scan_local.py with your Anthropic + Pinecone keys",
+                "Your notes never leave your machine",
+                "Import the result here to store + view it free",
+                "Same card, same privacy controls",
+              ].map((t, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm">
+                  <Check size={14} style={{ color: "var(--text-secondary)", marginTop: 3, flexShrink: 0 }} />
+                  <span style={{ color: "var(--text-primary)" }}>{t}</span>
+                </li>
+              ))}
+            </ul>
+            <a
+              href={REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "var(--surface-2)", color: "var(--text-primary)", border: "1px solid var(--border)" }}
+            >
+              <Github size={15} /> Get the repo
+            </a>
+          </div>
         </div>
 
         {error && (
-          <p className="text-sm mb-6 px-4 py-3 rounded-lg"
+          <p className="text-sm mt-6 px-4 py-3 rounded-lg"
             style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.1)" }}>
             {error}
           </p>
         )}
 
-        <p className="text-xs text-center" style={{ color: "var(--text-secondary)" }}>
-          Powered by Stripe. Cancel anytime from your dashboard settings.
+        <p className="text-xs text-center mt-10" style={{ color: "var(--text-secondary)" }}>
+          Paid scans are powered by Stripe. The $2 covers the Claude + Pinecone cost of running your scan.
+          Already ran it yourself? Import your card on the{" "}
+          <Link href="/dashboard/brain-card" className="hover:underline" style={{ color: "var(--accent)" }}>Brain Card page</Link>.
         </p>
       </div>
     </div>

@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from services.auth import get_current_user_id
 from services.scan_domains import DOMAINS, get_domain
 from services.brain_card import generate_brain_card
-from services.db import record_scan, get_latest_scans, get_scan_timeline, get_client
+from services.db import record_scan, get_latest_scans, get_scan_timeline, upsert_profile_snapshot, get_client
 
 router = APIRouter()
 
@@ -69,6 +69,39 @@ async def run_scans(body: dict = Body(default={}), user_id: str = Depends(get_cu
             results[d] = {"error": str(e)[:200]}
 
     return JSONResponse({"scans": results})
+
+
+@router.post("/scan/import")
+async def import_card(body: dict = Body(...), user_id: str = Depends(get_current_user_id)):
+    """
+    Store a Brain Card the user generated themselves by self-hosting the repo —
+    free, no paywall (they ran the compute + paid for their own API calls).
+
+    Accepts the JSON printed by `scripts/scan_local.py`:
+      { "sections": {<title>: <text>, ...}, "signal": {...} }   (or wrapped in {"card": ...})
+    """
+    card = body.get("card") if isinstance(body.get("card"), dict) else body
+    sections = card.get("sections") if isinstance(card, dict) else None
+    if not isinstance(sections, dict) or not any(
+        isinstance(v, str) and v.strip() for v in sections.values()
+    ):
+        return JSONResponse(
+            {"detail": "Provide a Brain Card with a non-empty 'sections' object."},
+            status_code=400,
+        )
+    signal = card.get("signal") or card.get("brain_signal") or card.get("founder_signal") or {}
+    if not isinstance(signal, dict):
+        signal = {}
+    brain_card = {"sections": sections, "signal": signal}
+    try:
+        confidence = int(card.get("brain_confidence") or 70)
+    except (TypeError, ValueError):
+        confidence = 70
+    upsert_profile_snapshot(
+        user_id=user_id, brain_card=brain_card, quality_score=max(30, min(100, confidence))
+    )
+    record_scan(user_id, "brainscan", sections, signal)
+    return JSONResponse({"ok": True, "sections": sections, "signal": signal})
 
 
 @router.get("/scan/me")

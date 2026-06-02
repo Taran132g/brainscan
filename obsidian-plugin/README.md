@@ -1,11 +1,11 @@
 # BrainScan for Obsidian
 
-Scan your vault into a BrainScan brain card without leaving Obsidian. The plugin
-zips your notes and uploads them to BrainScan; you view the resulting card (and
-opt into people-matching) on the BrainScan site.
+Scan your vault into a BrainScan Brain Card without leaving Obsidian. The plugin
+zips your notes and uploads them to BrainScan; you view the resulting card on the
+BrainScan site.
 
 > The plugin **ingests**; the **platform reveals** the card. It deliberately does
-> not render results in Obsidian — your account, card, and matching live on the site.
+> not render results in Obsidian — your account and card live on the site.
 
 ## Install (dev / beta)
 

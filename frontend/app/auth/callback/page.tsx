@@ -43,10 +43,7 @@ export default function AuthCallbackPage() {
         if (cancelled) return;
         const { data } = await supabase.auth.getSession();
         if (data.session) {
-          // New users go through onboarding first; it self-redirects returning
-          // users (already onboarded) straight to the dashboard.
-          const onboarded = data.session.user?.user_metadata?.onboarded;
-          router.replace(onboarded ? "/dashboard" : "/onboarding");
+          router.replace("/dashboard");
           return;
         }
         await new Promise((r) => setTimeout(r, 200));
