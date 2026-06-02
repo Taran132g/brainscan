@@ -194,7 +194,7 @@ export default function BrainCardPage() {
           <div className="px-5 pb-5 flex flex-col gap-3">
             <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
               Prefer to run it yourself? Clone the{" "}
-              <a href="https://github.com/Taran132g/FindingFounders" target="_blank" rel="noreferrer" className="hover:underline" style={{ color: "var(--accent)" }}>
+              <a href="https://github.com/Taran132g/brainscan" target="_blank" rel="noreferrer" className="hover:underline" style={{ color: "var(--accent)" }}>
                 open-source repo
               </a>
               , add your own API keys, and run{" "}

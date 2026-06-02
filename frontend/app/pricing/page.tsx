@@ -7,7 +7,7 @@ import { Brain, Check, ArrowRight, ArrowLeft, Loader2, Github } from "lucide-rea
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
-const REPO_URL = "https://github.com/Taran132g/FindingFounders";
+const REPO_URL = "https://github.com/Taran132g/brainscan";
 
 export default function PricingPage() {
   const router = useRouter();

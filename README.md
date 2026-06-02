@@ -52,7 +52,7 @@ You need accounts for **Anthropic**, **Pinecone**, and **Supabase**. (Stripe is 
 
 ### 1. Clone + keys
 ```bash
-git clone https://github.com/Taran132g/FindingFounders.git brainscan
+git clone https://github.com/Taran132g/brainscan.git brainscan
 cd brainscan
 cp backend/.env.example   backend/.env          # fill in your keys
 cp frontend/.env.example  frontend/.env.local

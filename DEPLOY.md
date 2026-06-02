@@ -46,7 +46,7 @@ On Oracle:
 
 ```bash
 # 1. Clone
-cd ~ && git clone https://github.com/Taran132g/FindingFounders.git findingfounders
+cd ~ && git clone https://github.com/Taran132g/brainscan.git findingfounders
 cd ~/findingfounders/backend
 
 # 2. Python venv + deps
