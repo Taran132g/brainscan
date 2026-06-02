@@ -4,7 +4,6 @@ from services.vector_store import query_namespace
 from services.brain_card import generate_brain_card
 from services.auth import verify_user_owns_path, get_current_user_id
 from services.db import get_client, update_profile_fields, get_privacy, set_privacy
-from services.match_service import _coords_for, upsert_scan_match_vectors, delete_scan_match_vectors
 from services.paywall import FULL_TIER_FREE_UPLOADS_PER_CYCLE
 
 router = APIRouter()
@@ -15,44 +14,15 @@ async def update_my_profile(
     fields: dict = Body(...),
     user_id: str = Depends(get_current_user_id),
 ):
-    """
-    Persist user-editable profile fields to the `profiles` table. Returns whether
-    the city resolved to known coordinates (used for the geocoded confirmation).
-    """
+    """Persist user-editable profile fields to the `profiles` table."""
     written = update_profile_fields(user_id, fields)
-    coords = _coords_for(written.get("city") or "")
-    return {
-        "ok": True,
-        "city": written.get("city"),
-        "geocoded": coords is not None,
-    }
+    return {"ok": True, "city": written.get("city")}
 
 
 @router.get("/profile/me/privacy")
 async def get_my_privacy(user_id: str = Depends(get_current_user_id)):
-    """Current privacy + matching settings (powers the Settings UI)."""
+    """Current privacy settings (powers the Settings UI)."""
     return get_privacy(user_id)
-
-
-def _reindex_into_pool(user_id: str) -> None:
-    """Re-embed a user's stored Brain Card into the people pool (opt back in)."""
-    try:
-        res = get_client().table("profiles").select(
-            "brain_card, founder_signal, full_name, city, school, avatar_url"
-        ).eq("id", user_id).limit(1).execute()
-        row = (res.data or [{}])[0]
-        if not row.get("brain_card"):
-            return
-        card = {"sections": row.get("brain_card"), "signal": row.get("founder_signal") or {}}
-        meta = {
-            "full_name": row.get("full_name"),
-            "city": row.get("city"),
-            "school": row.get("school"),
-            "avatar_url": row.get("avatar_url"),
-        }
-        upsert_scan_match_vectors(user_id, "brainscan", card, meta)
-    except Exception as e:
-        print(f"[profile] reindex into pool failed: {e}")
 
 
 @router.put("/profile/me/privacy")
@@ -60,23 +30,13 @@ async def update_my_privacy(
     body: dict = Body(...),
     user_id: str = Depends(get_current_user_id),
 ):
-    """
-    Update privacy / matching controls. Turning matching off removes the user
-    from the people pool immediately; turning it back on re-embeds their stored
-    Brain Card.
-    """
-    before = get_privacy(user_id)
+    """Update privacy controls — whether the public profile is visible, and which
+    Brain Card sections to hide from others."""
     settings = set_privacy(
         user_id,
         profile_public=body.get("profile_public"),
         hidden_sections=body.get("hidden_sections"),
-        matching_enabled=body.get("matching_enabled"),
     )
-    if body.get("matching_enabled") is not None and settings["matching_enabled"] != before["matching_enabled"]:
-        if settings["matching_enabled"]:
-            _reindex_into_pool(user_id)
-        else:
-            delete_scan_match_vectors(user_id, "brainscan")
     return {"ok": True, **settings}
 
 

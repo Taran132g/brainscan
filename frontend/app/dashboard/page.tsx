@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, Users, ScanLine } from "lucide-react";
+import { Brain, FileArchive, ArrowRight, Sparkles, ExternalLink, ScanLine } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ScanCard } from "@/components/ScanCard";
 import { BrainCardHero } from "@/components/BrainCardHero";
@@ -142,16 +142,10 @@ export default function DashboardOverview() {
                 href="/dashboard/brain-card"
               />
               <ActionCard
-                icon={<Users size={18} style={{ color: "var(--accent)" }} />}
-                title="Your people"
-                description="People matched on how you actually think"
-                href="/dashboard/people"
-              />
-              <ActionCard
                 icon={<Sparkles size={18} style={{ color: "var(--accent)" }} />}
-                title="Connections"
-                description="Connect, then message people who accept back"
-                href="/dashboard/connections"
+                title="Privacy & sharing"
+                description="Make your card private or hide sections"
+                href="/dashboard/settings"
               />
             </div>
           </section>
@@ -168,7 +162,7 @@ export default function DashboardOverview() {
           </h2>
           <p className="text-sm mb-6 max-w-sm mx-auto" style={{ color: "var(--text-secondary)" }}>
             Upload your digital brain — Obsidian, Notion, or any knowledge base — and BrainScan reads how
-            you actually think across founder, career, and relationships.
+            you actually think, what drives you, and how you connect.
           </p>
           <Link
             href="/upload"

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Globe, Lock, Users } from "lucide-react";
+import { Loader2, Globe, Lock } from "lucide-react";
 import { API_BASE_URL, authedFetch } from "@/lib/api";
 
 // The whole-person Brain Card sections (BRAINSCAN domain). Users can hide any
@@ -79,13 +79,6 @@ export function PrivacyControls() {
         desc="Anyone with your link can view your Brain Card. Off = only you can see it."
         on={p.profile_public}
         onChange={(v) => save({ profile_public: v })}
-      />
-      <ToggleRow
-        icon={<Users size={15} />}
-        label="Show me in matching"
-        desc="Appear on the People page and be matchable. Off removes you from the pool."
-        on={p.matching_enabled}
-        onChange={(v) => save({ matching_enabled: v })}
       />
 
       <div className="px-4 py-3 rounded-lg" style={{ backgroundColor: "var(--background)" }}>

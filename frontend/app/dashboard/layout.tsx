@@ -3,15 +3,13 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Brain, Home, User, Settings, LogOut, Users, MessageCircle, ScanLine } from "lucide-react";
+import { Brain, Home, User, Settings, LogOut, ScanLine } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Avatar } from "@/components/Avatar";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: Home, exact: true },
   { href: "/dashboard/brain-card", label: "Brain Card", icon: ScanLine },
-  { href: "/dashboard/people", label: "People", icon: Users },
-  { href: "/dashboard/connections", label: "Connections", icon: MessageCircle },
   { href: "/dashboard/profile", label: "Profile", icon: User },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ];

@@ -50,8 +50,6 @@ export default function ProfilePage() {
   const [vaultQuality, setVaultQuality] = useState<VaultQuality | null>(null);
   const [userName, setUserName] = useState("");
   const [publicProfile, setPublicProfile] = useState<PublicProfileFields | undefined>(undefined);
-  const [connStatus, setConnStatus] = useState<string>("none");
-  const [connecting, setConnecting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isPrivate, setIsPrivate] = useState(false);
@@ -131,30 +129,6 @@ export default function ProfilePage() {
         setLoading(false);
       });
   }, [userId]);
-
-  // Connection status — the full Brain Card unlocks only when both connect.
-  useEffect(() => {
-    if (!user || user.id === userId) return;
-    authedFetch(`${API_BASE_URL}/api/match/connections`)
-      .then((r) => (r.ok ? r.json() : { connections: [] }))
-      .then((d) => {
-        const c = (d.connections || []).find((x: { other_user_id: string }) => x.other_user_id === userId);
-        setConnStatus(c?.status || "none");
-      })
-      .catch(() => {});
-  }, [user, userId]);
-
-  const connect = async () => {
-    if (!user) return;
-    setConnecting(true);
-    try {
-      const r = await authedFetch(`${API_BASE_URL}/api/match/${userId}/connect`, { method: "POST" });
-      const d = await r.json();
-      setConnStatus(d.status || "pending_outgoing");
-    } catch { /* ignore */ } finally {
-      setConnecting(false);
-    }
-  };
 
   return (
     <div style={{ backgroundColor: "var(--background)" }} className="min-h-screen">
@@ -251,38 +225,10 @@ export default function ProfilePage() {
               }}
             />
 
-            {/* Full brain scan — unlocked for you, or once you both connect */}
-            {user?.id === userId || connStatus === "connected" ? (
-              <div className="mt-6">
-                <ScanCard domain="brainscan" sections={brainCard?.sections || {}} />
-              </div>
-            ) : (
-              <div className="mt-6 p-8 rounded-2xl border text-center" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border)" }}>
-                <Lock size={26} className="mx-auto mb-3" style={{ color: "var(--accent)" }} />
-                <h3 className="text-base font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
-                  {(userName || "Their").split(" ")[0]}&apos;s full Brain Card is private
-                </h3>
-                <p className="text-sm max-w-sm mx-auto mb-5" style={{ color: "var(--text-secondary)" }}>
-                  The full six-section scan unlocks once you both connect.
-                </p>
-                {!user ? (
-                  <Link href="/auth" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm" style={{ backgroundColor: "var(--accent)", color: "white" }}>
-                    Sign in to connect <ArrowRight size={14} />
-                  </Link>
-                ) : connStatus === "pending_outgoing" ? (
-                  <span className="text-sm" style={{ color: "var(--text-secondary)" }}>Request sent — unlocks when they accept.</span>
-                ) : (
-                  <button
-                    onClick={connect}
-                    disabled={connecting}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium text-sm disabled:opacity-50"
-                    style={{ backgroundColor: "var(--accent)", color: "white" }}
-                  >
-                    {connecting ? "Connecting…" : connStatus === "pending_incoming" ? "Accept & unlock" : "Connect to unlock"} <ArrowRight size={14} />
-                  </button>
-                )}
-              </div>
-            )}
+            {/* Full brain scan */}
+            <div className="mt-6">
+              <ScanCard domain="brainscan" sections={brainCard?.sections || {}} />
+            </div>
 
             {/* Conversion CTA — only shown to visitors, not the profile owner */}
             {user?.id !== userId && (

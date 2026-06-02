@@ -7,6 +7,7 @@ import { API_BASE_URL, authedFetch } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { ScanCard } from "@/components/ScanCard";
 import { ScanStats } from "@/components/ScanStats";
+import { ScanProcess } from "@/components/ScanProcess";
 
 type Scan = { sections: Record<string, string>; signal: Record<string, string | boolean>; created_at?: string };
 
@@ -127,10 +128,12 @@ export default function BrainCardPage() {
           <ScanLine size={30} className="mx-auto mb-4" style={{ color: "var(--accent)" }} />
           <h2 className="text-base font-semibold mb-2" style={{ color: "var(--text-primary)" }}>No Brain Card yet</h2>
           <p className="text-sm max-w-md mx-auto" style={{ color: "var(--text-secondary)" }}>
-            Upload your digital brain, then hit Generate — your Brain Card appears here and unlocks your people.
+            Upload your digital brain, then hit Generate — your whole-person Brain Card appears here.
           </p>
         </div>
       )}
+
+      <ScanProcess />
     </div>
   );
 }

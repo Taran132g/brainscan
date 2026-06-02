@@ -120,13 +120,23 @@ _BRAIN_TOOL = {
 
 BRAINSCAN = ScanDomain(
     id="brainscan",
+    # Comprehensive retrieval — many facets so the scan reads the WHOLE person
+    # (not just the six output sections). More queries + a high chunk_target means
+    # the engine analyzes a wide, deep sample of the vault and chats.
     retrieval_queries={
-        "who_they_are": "who they are, background, identity, life story, where they are in life, personal history",
-        "how_they_think": "how they think, mental models, reasoning, ideas, curiosity, decision making, worldview",
-        "career_and_ambition": "career, work, job, projects, ambitions, goals, what they are building or doing professionally",
-        "how_they_connect": "relationships, friends, family, communication, how they relate to people, social life, connection",
-        "values_and_drives": "values, what they care about, motivations, what drives them, beliefs, what matters",
-        "what_theyre_looking_for": "what they want, who they want to meet, ideal people, connection they seek, loneliness, community",
+        "identity": "who they are, background, identity, life story, where they are in life, personal history",
+        "self_relationship": "how they see themselves, self-talk, inner monologue, self-doubt, confidence, identity, who they want to become",
+        "thinking": "how they think, mental models, reasoning, frameworks, decision making, worldview, philosophy",
+        "curiosity": "what fascinates them, obsessions, rabbit holes, what they keep coming back to, interests, learning",
+        "career": "career, work, job, projects, ambitions, goals, what they are building or doing professionally",
+        "execution": "how they work, productivity, habits, routines, discipline, procrastination, how they get things done",
+        "relationships": "relationships, friends, family, partner, how they relate to people, social life, connection",
+        "communication": "communication, how they express themselves, conflict, listening, how they talk to people, vulnerability",
+        "emotions": "emotions, feelings, anxiety, stress, joy, anger, what moves them, emotional patterns, mood",
+        "values": "values, what they care about, beliefs, principles, ethics, what matters most, worldview",
+        "drives": "motivation, what drives them, ambition, fears, desires, what energizes or drains them, purpose",
+        "growth": "struggles, weaknesses, regrets, what they want to change, growth, blind spots, recurring problems",
+        "looking_for": "what they want, who they want to meet, ideal people, connection they seek, loneliness, community",
     },
     system_prompt=_BRAIN_SYSTEM,
     user_prompt_template=_BRAIN_USER_PROMPT,
@@ -142,7 +152,7 @@ BRAINSCAN = ScanDomain(
     },
     signal_key="brain_signal",
     needs_section_key="what_theyre_looking_for",
-    chunk_target=60,
+    chunk_target=140,
     sensitivity="low",
 )
 

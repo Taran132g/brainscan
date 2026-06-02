@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from routes.upload import router as upload_router
 from routes.profile import router as profile_router
 from routes.auth import router as auth_router
-from routes.match import router as match_router
 from routes.payment import router as payment_router
 from routes.github import router as github_router
 from routes.linkedin import router as linkedin_router
@@ -33,7 +32,6 @@ app.add_middleware(
 app.include_router(upload_router, prefix="/api", tags=["vault"])
 app.include_router(profile_router, prefix="/api", tags=["profile"])
 app.include_router(auth_router, prefix="/api", tags=["auth"])
-app.include_router(match_router, prefix="/api", tags=["match"])
 app.include_router(payment_router, prefix="/api", tags=["payment"])
 app.include_router(github_router, prefix="/api", tags=["github"])
 app.include_router(linkedin_router, prefix="/api", tags=["linkedin"])

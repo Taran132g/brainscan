@@ -59,7 +59,7 @@ export default function Home() {
         <p className="text-lg md:text-xl max-w-xl mb-10 leading-relaxed animate-in animate-in-2" style={{ color: "var(--text-secondary)" }}>
           Upload your digital brain — Obsidian, Notion, any knowledge base. BrainScan reads how you think,
           your <strong style={{ color: "var(--text-primary)" }}>career</strong>, and your <strong style={{ color: "var(--text-primary)" }}>relationships</strong> into
-          one Brain Card — then connects you with the people you&apos;d genuinely click with.
+          one Brain Card — an honest mirror of who you are, read from your own words.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-4 mb-16 animate-in animate-in-3">
@@ -88,8 +88,8 @@ export default function Home() {
             One scan. The whole you.
           </h2>
           <p className="text-sm text-center mb-10 max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-            A single Brain Card reads across everything that makes you <em>you</em> — then matches you with
-            people who genuinely fit.
+            A single Brain Card reads across everything that makes you <em>you</em> — how you think, what
+            drives you, and how you connect.
           </p>
         </Reveal>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -139,8 +139,7 @@ export default function Home() {
             See BrainScan in action
           </h2>
           <p className="text-sm text-center mb-12 max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
-            A few seconds on what it&apos;s like to turn your digital brain into a Brain Card — and meet the
-            people behind the other cards.
+            A few seconds on what it&apos;s like to turn your digital brain into a Brain Card.
           </p>
         </Reveal>
         <VideoWall />
@@ -180,8 +179,8 @@ export default function Home() {
             {
               icon: <Users size={22} style={{ color: "var(--accent)" }} />,
               step: "04",
-              title: "Meet your people",
-              desc: "Get matched on how you actually think — similar minds, or ones that complement your gaps.",
+              title: "See yourself clearly",
+              desc: "Read your whole-person card, share it, and revisit it — it evolves as your second brain grows.",
             },
           ].map((item, i) => (
             <Reveal key={item.step} delay={i * 80}>
@@ -225,7 +224,7 @@ export default function Home() {
             </h2>
             <p className="text-sm max-w-lg mx-auto" style={{ color: "var(--text-secondary)" }}>
               Six sections + a signal read, inferred from how you actually write — not a form you fill out.
-              It&apos;s what we use to find your people.
+              An honest mirror of who you are.
             </p>
           </div>
         </Reveal>
@@ -253,7 +252,7 @@ export default function Home() {
           />
         </Reveal>
         <p className="text-center text-xs mt-4" style={{ color: "var(--text-muted)" }}>
-          A sample — your real card and your people appear once you upload your digital brain.
+          A sample — your real card appears once you upload your digital brain.
         </p>
       </section>
 
