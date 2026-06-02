@@ -2,7 +2,15 @@
 
 <p align="center"><img src="docs/hero.svg" alt="BrainScan — an AI that reads your second brain" width="100%"></p>
 
+<p align="center">
+  <a href="https://findingfounders-zeta.vercel.app"><img src="https://img.shields.io/badge/try%20it-live-10b981" alt="Live demo"></a>
+  <img src="https://img.shields.io/github/license/Taran132g/brainscan?color=10b981" alt="License">
+  <img src="https://img.shields.io/github/stars/Taran132g/brainscan?style=social" alt="Stars">
+</p>
+
 > An AI that reads your second brain and shows you how you actually think.
+>
+> ⭐ If this resonates, star the repo — it helps others find it.
 
 Most personality tests are 20 questions. A résumé is a highlight reel. But you've already written thousands of words about how you think, what you're building, and what you care about — in Obsidian, Notion, journals, chat logs.
 
