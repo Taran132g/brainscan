@@ -3,7 +3,7 @@
   "name": "BrainScan",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Scan your vault into a BrainScan brain card — see how you think and meet people whose minds match yours.",
+  "description": "Scan your vault into a BrainScan Brain Card — an AI read of how you think, what drives you, and how you connect, from your own notes.",
   "author": "BrainScan",
   "authorUrl": "https://findingfounders.app",
   "isDesktopOnly": true

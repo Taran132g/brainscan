@@ -1,167 +1,119 @@
-# FindingFounders
+# 🧠 BrainScan
 
-> Co-founder matching powered by how you actually think — not how you describe yourself.
+> An AI that reads your second brain and shows you how you actually think.
 
-Most co-founder platforms ask you to fill out a survey. FindingFounders reads your Obsidian vault — your real notes, projects, ideas, and mental models — and uses AI to build a *brain card*: a compatibility profile based on your actual thinking patterns, not your self-reported traits.
+Most personality tests are 20 questions. A résumé is a highlight reel. But you've already written thousands of words about how you think, what you're building, and what you care about — in Obsidian, Notion, journals, chat logs.
+
+**BrainScan** ingests your digital brain, runs retrieval-augmented analysis across a dozen dimensions of who you are, and distills it into a **Brain Card**: an honest, whole-person portrait read from your own words.
+
+```
+your notes & chats  ──►  embed + index  ──►  RAG retrieval  ──►  LLM analysis  ──►  Brain Card
+   (Obsidian/Notion)      (Pinecone)        (13 facets)        (Claude)        (6 sections + signal)
+```
+
+It runs as a hosted product **and** as a self-hostable stack — bring your own API keys and scan your own brain locally.
 
 ---
 
-## How It Works
+## What it produces
 
-1. **Upload your vault** — Export your Obsidian vault as a `.zip` and upload it. Raw text is never stored.
-2. **We build your brain card** — AI analyzes how you think, what you're building, what you value, and what kind of co-founder would complement you.
-3. **Get matched** — Describe what you're looking for. We search every brain in our network and return ranked compatibility reports with suggested build areas.
+A **Brain Card** with six sections — *Who They Are · How They Think · Career & Ambition · How They Connect · Values & What Drives Them · What They're Looking For* — plus a calibrated **signal** (openness, drive, communication style, social energy, emotional openness, connection style, conflict style, core motivation).
+
+The analysis is **mirror-not-flatter**: specific, evidence-based, and willing to name a real growth edge.
 
 ---
 
-## Current Tech Stack
+## How it works
 
-| Layer | Technology |
+1. **Ingest** — your vault (a `.zip` of markdown, or the Obsidian plugin) is parsed, chunked, and embedded into a **private Pinecone namespace**. Raw text is never persisted past the analysis call — only vectors are stored.
+2. **Retrieve** — for each of **13 facets** of personhood (identity, thinking, emotions, values, relationships, growth, …) a semantic query pulls the most revealing passages from your vault. Results are round-robin merged + deduped into a wide, deep sample (~140 chunks).
+3. **Analyze** — Claude reads those passages through a research-backed prompt (Big Five, attachment, self-determination theory) and returns the structured card.
+4. **View** — your card renders on the web app; you can re-scan anytime and watch it evolve.
+
+---
+
+## Tech stack
+
+| Layer | Tech |
 |---|---|
-| Frontend | Next.js 15 (TypeScript) |
-| Backend | FastAPI (Python 3.12) |
-| Embeddings | `all-MiniLM-L6-v2` via `sentence-transformers` (384-dim) |
-| Vector DB | Pinecone (Serverless, AWS us-east-1) |
-| LLM | Claude Opus 4.7 (brain card generation) |
-| Auth | *(Google OAuth — in progress)* |
-| Payments | *(Stripe — in progress)* |
+| Frontend | Next.js 16 (App Router) · Tailwind · deployed on Vercel |
+| Backend | FastAPI (Python 3.12) · runs on any Linux box behind nginx |
+| Embeddings + vectors | Pinecone hosted inference (`multilingual-e5-large`, 1024-dim) |
+| Analysis | Anthropic Claude (Opus) |
+| Auth + DB | Supabase (Postgres + Auth) |
+| Payments (optional) | Stripe |
+| Ingestion | `.zip` upload · or the Obsidian plugin (`obsidian-plugin/`) |
 
 ---
 
-## Planned Tech Stack
+## Self-host quickstart
 
-| Feature | Technology |
-|---|---|
-| Authentication | Google OAuth 2.0 (NextAuth.js + FastAPI session) |
-| Payments | Stripe ($3.99/month — paywall after brain card generation) |
-| Founder signal enrichment | GitHub OAuth (repos, commit cadence, languages) |
-| Cross-user matching | Pinecone cross-namespace cosine similarity |
-| In-app messaging | WebSocket or Pusher |
-| Deployment | Vercel (frontend) + DigitalOcean App Platform (backend) |
-| Founder scoring | Custom rubric based on PNAS/First Round/YC research (see below) |
+You need accounts for **Anthropic**, **Pinecone**, and **Supabase**. (Stripe is optional — only for paid scans.)
 
----
+### 1. Clone + keys
+```bash
+git clone https://github.com/Taran132g/FindingFounders.git brainscan
+cd brainscan
+cp backend/.env.example   backend/.env          # fill in your keys
+cp frontend/.env.example  frontend/.env.local
+```
 
-## Roadmap
+### 2. Pinecone
+Create an index named whatever you set in `PINECONE_INDEX_NAME`, using the **`multilingual-e5-large`** hosted-inference model (1024 dimensions, cosine).
 
-### Phase 1 — Core (In Progress)
-- [x] Vault upload + parsing (`.zip` → markdown extraction)
-- [x] Chunking + embedding pipeline (`all-MiniLM-L6-v2`)
-- [x] Pinecone vector store with per-user namespaces
-- [x] Claude Opus brain card generation (5-section profile)
-- [x] Landing page + upload UI
-- [x] Profile view page
-- [ ] Google Auth (user identity)
-- [ ] Vault quality gate (min 1,000 notes or 200 notes × 300+ avg words)
-- [ ] Brain card quality score (confidence % based on vault richness)
-- [ ] Stripe paywall ($3.99/month, triggered after brain card generated)
+### 3. Supabase
+- Create a project; copy the URL + `anon` + `service_role` keys into the env files.
+- Run the SQL in `backend/migrations/` **in order** (`0001` → latest) in the Supabase SQL Editor.
+- Enable an auth provider (Google OAuth and/or email magic link).
 
-### Phase 2 — Founder Signal Enrichment
-- [ ] GitHub OAuth integration (repos, commit frequency, top languages, streak)
-- [ ] School / university field (weighted signal in founder score)
-- [ ] Prior work experience field (big-tech employer = strong signal)
-- [ ] Shipped products input (App Store, Product Hunt, GitHub stars)
-- [ ] Founder score rubric (composite score based on empirical research)
+### 4. Backend
+```bash
+cd backend
+python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8001
+```
 
-### Phase 3 — Matching
-- [ ] Cross-namespace Pinecone similarity search
-- [ ] Match ranking with compatibility report
-- [ ] "What you two should build together" AI suggestion (based on both brain cards)
-- [ ] In-app messaging between matched founders
-- [ ] Match feedback loop (did this intro lead anywhere?)
+### 5. Frontend
+```bash
+cd frontend
+npm install
+npm run dev      # http://localhost:3000  (set NEXT_PUBLIC_API_BASE_URL=http://localhost:8001)
+```
 
-### Phase 4 — Growth
-- [ ] B2B: accelerator cohort tool (Techstars, On Deck, university programs)
-- [ ] Obsidian vault template for users who don't have one yet
-- [ ] Anonymized aggregate insights ("what the data says about great co-founder pairs")
-- [ ] Mobile-optimized upload flow
+Sign in, upload a vault `.zip` (or connect the plugin), and hit **Generate**.
 
 ---
 
-## Founder Scoring Rubric
+## The Obsidian plugin
 
-Every user on this platform is by definition solo and looking for a co-founder, so traditional "2+ founders" and "solo penalty" signals are meaningless here — they'd apply to either 0% or 100% of users. The rubric uses verifiable platform signals (GitHub, LinkedIn) plus LLM-derived signals from the vault instead.
+`obsidian-plugin/` is a desktop Obsidian plugin that zips your vault (minus excluded folders) and sends it straight to your BrainScan backend — no manual export.
 
-| Signal | Max Points | Source |
-|---|---|---|
-| GitHub quality (commits, repos, stars, language diversity) | +15 | Verifiable build signal |
-| Founder-market fit | +15 | 230% more likely to grow (NFX) |
-| LinkedIn quality (employer prestige, role progression) | +12 | Subsumes big-tech employer (+160% First Round) |
-| Technical background | +12 | +230% for B2B (First Round) |
-| Emotional stability | +10 | Only Big Five trait consistent across stages (PNAS, n=10,541) |
-| Prior shipped product | +10 | 34% vs 22% success rate (HBS) |
-| Female founder on team | +8 | 63% outperformance (First Round) |
-| Elite school (network signal) | +8 | ~220% outperformance — network, not ability (First Round) |
-| Implied intelligence (Claude-derived from vault) | +6 | Small signal — writing quality, conceptual depth |
-| Age under 25 at founding | +5 | ~30% above average — venture-software bias (First Round) |
-| **High neuroticism penalty** | **-10** | Consistent negative predictor (PNAS) |
+**Install (manual / dev):**
+1. `cd obsidian-plugin && npm install && npm run build`
+2. Copy `main.js` + `manifest.json` into `<your-vault>/.obsidian/plugins/brainscan/`
+3. Enable **BrainScan** in Obsidian → Settings → Community plugins.
+4. In the plugin settings, paste your token (BrainScan → Settings → Connect Obsidian) and set the **API base URL** to your backend.
 
-Graded signals (GitHub, LinkedIn, founder-market fit, emotional stability, implied intelligence) scale: `high` = full points, `medium` = half, `low` = 0.
-
-Baseline is 50. Max theoretical: 100. See `backend/services/founder_score.py` for implementation.
-
-Sources: PNAS (2023, n=10,541) · First Round Capital 10-Year Study · Kauffman Foundation · Paul Graham/YC · HBS · NFX
+> Not yet listed in the official Obsidian community-plugins directory — see the roadmap below.
 
 ---
 
 ## Privacy
 
-Your notes never leave your container. We convert vault content into embeddings — mathematical representations of meaning — stored in your private Pinecone namespace. Raw text is processed in memory and immediately discarded. When matching runs, only vectors are compared. No raw content is ever shared with other users, accessible to the team, or used for model training.
+- Your notes are converted to embeddings and stored in a **private per-user namespace**. Raw text is not persisted after analysis and is never shared between users.
+- Profiles are private or public by your choice; you can hide individual sections.
+- Self-hosting means your data and keys never leave your own infrastructure.
 
 ---
 
-## Project Structure
+## Roadmap
 
-```
-FindingFounders/
-├── backend/
-│   ├── main.py                  # FastAPI app entry point
-│   ├── requirements.txt
-│   ├── .env.example
-│   ├── routes/
-│   │   ├── upload.py            # POST /api/upload/{user_id}
-│   │   └── profile.py           # GET /api/profile/{user_id}/brain-card
-│   └── services/
-│       ├── vault_parser.py      # Zip extraction + markdown parsing
-│       ├── chunker.py           # Heading-aware document chunking
-│       ├── embedder.py          # Sentence transformer embeddings
-│       ├── vector_store.py      # Pinecone upsert/query/delete
-│       └── brain_card.py        # Claude Opus brain card generation
-└── frontend/
-    ├── app/
-    │   ├── page.tsx             # Landing page
-    │   ├── upload/page.tsx      # Vault upload flow
-    │   └── profile/[userId]/    # Brain card display
-    └── ...
-```
+- [ ] Publish the plugin to the Obsidian community store
+- [ ] Notion / ChatGPT-export / plain-text ingestion
+- [ ] One-command Docker setup
+- [ ] Configurable analysis model (Haiku/Sonnet) for cheaper scans
 
----
+## License
 
-## Getting Started
-
-### Backend
-```bash
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env  # fill in your keys
-uvicorn main:app --reload
-```
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-### Environment Variables
-```
-ANTHROPIC_API_KEY=sk-ant-...
-PINECONE_API_KEY=pcsk-...
-PINECONE_INDEX_NAME=finding-founders
-```
-
----
-
-*Built by [@Taran132g](https://github.com/Taran132g)*
+MIT — do what you want; no warranty. BrainScan is a self-reflection tool, not a clinical or psychological assessment.
