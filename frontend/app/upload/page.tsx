@@ -180,7 +180,7 @@ export default function UploadPage() {
         sessionStorage.setItem(`vault_quality_${userId}`, JSON.stringify(result.vault_quality));
       }
 
-      setTimeout(() => router.push(`/profile/${userId}`), 800);
+      setTimeout(() => router.push("/dashboard"), 800);
     } catch (err) {
       setStage("error");
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -234,9 +234,15 @@ export default function UploadPage() {
               Upload your vault
             </h1>
             <p className="text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
-              We&apos;ll process your digital brain — an Obsidian vault, a Notion export, or any
-              knowledge base with enough of your thinking — into a brain card so you can find
-              co-founders who think like you.
+              We&apos;ll read your digital brain — an Obsidian vault, a Notion export, or any
+              knowledge base with enough of your thinking — into a whole-person Brain Card: how you
+              think, what drives you, and how you connect. Your notes are turned into private vectors
+              and <strong style={{ color: "var(--text-primary)" }}>never stored as raw text</strong>.
+            </p>
+            <p className="text-xs mb-6 px-4 py-3 rounded-lg" style={{ color: "var(--text-secondary)", backgroundColor: "var(--surface-2)" }}>
+              Prefer not to upload manually? Use the <strong style={{ color: "var(--text-primary)" }}>Obsidian plugin</strong> to scan from
+              inside your vault, or run the open-source scan yourself for free — see{" "}
+              <Link href="/pricing" className="hover:underline" style={{ color: "var(--accent)" }}>pricing</Link>.
             </p>
 
             {/* Brain scan counter — at-a-glance */}
@@ -296,7 +302,7 @@ export default function UploadPage() {
                         ? "Checking..."
                         : githubStatus?.connected
                         ? `Linked as ${githubStatus.username}${githubStatus.quality ? ` · grade: ${githubStatus.quality}` : ""}`
-                        : "Optional — but unverified founders show lower brain confidence. Connect GitHub (and LinkedIn) to verify your signal and boost credibility."}
+                        : "Optional — connecting GitHub (and LinkedIn) verifies your signal and raises your brain confidence. You can scan without it."}
                     </p>
                   </div>
                 </div>
@@ -379,11 +385,11 @@ export default function UploadPage() {
 
             <button
               onClick={handleSubmit}
-              disabled={!selectedFile || !githubStatus?.connected || githubChecking}
+              disabled={!selectedFile}
               className="w-full py-3 rounded-lg font-medium text-sm transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ backgroundColor: "var(--accent)", color: "white" }}
             >
-              Analyze My Brain
+              Scan my brain
             </button>
 
             {/* No vault? NextWork CTA */}
@@ -435,7 +441,7 @@ export default function UploadPage() {
                 {stage === "done" ? "Brain card ready!" : "Processing your vault"}
               </h2>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                {stage === "done" ? "Redirecting to your profile..." : progress}
+                {stage === "done" ? "Taking you to your Brain Card..." : progress}
               </p>
             </div>
 

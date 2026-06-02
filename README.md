@@ -1,5 +1,7 @@
 # 🧠 BrainScan
 
+<p align="center"><img src="docs/hero.svg" alt="BrainScan — an AI that reads your second brain" width="100%"></p>
+
 > An AI that reads your second brain and shows you how you actually think.
 
 Most personality tests are 20 questions. A résumé is a highlight reel. But you've already written thousands of words about how you think, what you're building, and what you care about — in Obsidian, Notion, journals, chat logs.
@@ -83,6 +85,17 @@ npm run dev      # http://localhost:3000  (set NEXT_PUBLIC_API_BASE_URL=http://l
 
 Sign in, upload a vault `.zip` (or connect the plugin), and hit **Generate**.
 
+### Or run it with Docker
+
+```bash
+cp backend/.env.example  backend/.env          # add your keys
+cp frontend/.env.example frontend/.env.local   # add Supabase URL + anon key
+docker compose up --build
+```
+
+Open http://localhost:3000. Supabase + Pinecone are managed services (external) —
+only the two app servers run in Docker.
+
 ---
 
 ## The Obsidian plugin
@@ -111,7 +124,7 @@ Sign in, upload a vault `.zip` (or connect the plugin), and hit **Generate**.
 
 - [ ] Publish the plugin to the Obsidian community store
 - [ ] Notion / ChatGPT-export / plain-text ingestion
-- [ ] One-command Docker setup
+- [x] One-command Docker setup
 - [ ] Configurable analysis model (Haiku/Sonnet) for cheaper scans
 
 ## License

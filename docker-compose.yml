@@ -1,0 +1,32 @@
+# BrainScan — one-command local / self-host stack.
+#
+#   1. cp backend/.env.example  backend/.env          # add your keys
+#   2. cp frontend/.env.example frontend/.env.local   # add Supabase URL + anon key
+#   3. docker compose up --build
+#
+# Then open http://localhost:3000 . Supabase + Pinecone are external (managed) —
+# only the app servers run here.
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8001:8001"
+    env_file:
+      - ./backend/.env
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # The browser (on the host) talks to the published backend port.
+      - NEXT_PUBLIC_API_BASE_URL=http://localhost:8001
+      - NEXT_PUBLIC_APP_URL=http://localhost:3000
+    env_file:
+      # Supabase URL + anon key (NEXT_PUBLIC_SUPABASE_*).
+      - ./frontend/.env.local
+    depends_on:
+      - backend
+    restart: unless-stopped
