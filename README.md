@@ -19,6 +19,8 @@ It runs as a hosted product **and** as a self-hostable stack — bring your own 
 
 ## What it produces
 
+<p align="center"><img src="docs/brain-card.svg" alt="Example Brain Card" width="80%"></p>
+
 A **Brain Card** with six sections — *Who They Are · How They Think · Career & Ambition · How They Connect · Values & What Drives Them · What They're Looking For* — plus a calibrated **signal** (openness, drive, communication style, social energy, emotional openness, connection style, conflict style, core motivation).
 
 The analysis is **mirror-not-flatter**: specific, evidence-based, and willing to name a real growth edge.
