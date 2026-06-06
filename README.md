@@ -122,6 +122,21 @@ only the two app servers run in Docker.
 
 ---
 
+## Connections — *coming soon*
+
+Today BrainScan shows you **yourself**. Next, it connects you to **other minds**.
+
+The Brain Card already captures who someone is at the level that actually matters for connection — how they think, what drives them, how they relate, what they're looking for. We're building a connection layer on top of that:
+
+- **Make your brain discoverable.** Opt in to a shared pool with the Brain Card (or just the sections) you choose to expose. Nothing is public unless you say so.
+- **Describe the brain you're looking for.** Not keywords — *traits*. "A builder with high openness and a direct style," "a calm thinking partner who values depth over speed," "a co-founder whose drive matches mine." You tell BrainScan the mind you want to find.
+- **Match on substance, not surface.** Matching runs on the underlying signal and the 13 facets — the same evidence-based read the card is built from — so you connect over how people actually think and what they care about, rather than a bio or a job title.
+- **Mutual by design.** Connections surface when there's a real fit on both sides, and you stay in control of who can see you and reach you.
+
+It's the natural next step: a card that reads you honestly is also the most honest basis for finding the people you'd genuinely click with — collaborators, co-founders, or just minds worth knowing.
+
+---
+
 ## Privacy
 
 - Your notes are converted to embeddings and stored in a **private per-user namespace**. Raw text is not persisted after analysis and is never shared between users.
@@ -132,6 +147,7 @@ only the two app servers run in Docker.
 
 ## Roadmap
 
+- [ ] **Connections** — trait-based matching: find and connect with minds whose Brain Cards fit what you're looking for
 - [ ] Publish the plugin to the Obsidian community store
 - [ ] Notion / ChatGPT-export / plain-text ingestion
 - [x] One-command Docker setup
