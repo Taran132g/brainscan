@@ -63,6 +63,10 @@ export function BrainCardHero({
         color: "white",
       }}
     >
+      {/* Generated liquid-chrome texture — material depth behind the content */}
+      <div className="absolute inset-0 z-0 card-liquid" aria-hidden />
+
+      <div className="relative z-10">
       {/* Brand row */}
       <div className="flex items-center gap-3 mb-6">
         <div
@@ -136,6 +140,7 @@ export function BrainCardHero({
           <span style={{ color: "#94a3b8" }}>{tags || "Connect GitHub / LinkedIn / Instagram"}</span>
         </div>
       )}
+      </div>
     </div>
   );
 }

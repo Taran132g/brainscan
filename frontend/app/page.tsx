@@ -30,6 +30,7 @@ export default function Home() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-grid" aria-hidden />
         <BrainGridBackground />
+        <div className="absolute inset-0 z-0 hero-liquid animate-in" aria-hidden />
         <section className="relative z-10 flex flex-col items-center text-center px-6 pt-24 pb-16 max-w-5xl mx-auto">
         <div
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium mb-8 border animate-in"

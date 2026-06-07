@@ -7,8 +7,19 @@ import {
   Setting,
   TFile,
   requestUrl,
+  setIcon,
 } from "obsidian";
 import JSZip from "jszip";
+
+/** Shared BrainScan brand banner — emerald mark + wordmark, used by the modal
+ *  and the settings tab so both surfaces read as one product. */
+function renderBrandBanner(parent: HTMLElement, tag: string): void {
+  const banner = parent.createDiv({ cls: "bs-banner" });
+  const row = banner.createDiv({ cls: "bs-banner-row" });
+  row.createDiv({ cls: "bs-mark", text: "BS" });
+  row.createDiv({ cls: "bs-wordmark", text: "BrainScan" });
+  row.createDiv({ cls: "bs-tag", text: tag });
+}
 
 interface BrainScanSettings {
   apiBaseUrl: string;
@@ -24,9 +35,11 @@ const DEFAULT_SETTINGS: BrainScanSettings = {
 
 export default class BrainScanPlugin extends Plugin {
   settings: BrainScanSettings;
+  private styleEl: HTMLStyleElement | null = null;
 
   async onload() {
     await this.loadSettings();
+    this.injectStyles();
 
     this.addCommand({
       id: "scan-my-brain",
@@ -36,6 +49,81 @@ export default class BrainScanPlugin extends Plugin {
 
     this.addRibbonIcon("brain", "BrainScan: Scan my brain", () => this.scanMyBrain());
     this.addSettingTab(new BrainScanSettingTab(this.app, this));
+  }
+
+  onunload() {
+    this.styleEl?.remove();
+    this.styleEl = null;
+  }
+
+  /** Brand the consent modal + settings to match the BrainScan web aesthetic
+   *  (emerald-on-navy, liquid-chrome accents). Scoped under .brainscan-ui so it
+   *  never bleeds into the rest of Obsidian. */
+  private injectStyles() {
+    const css = `
+.brainscan-ui { --bs-accent: #10b981; --bs-accent-2: #34d399; --bs-violet: #8b5cf6; }
+
+.brainscan-modal .modal-content,
+.brainscan-modal.modal-content { padding: 0; }
+
+.bs-banner {
+  position: relative;
+  overflow: hidden;
+  margin: -20px -20px 18px;
+  padding: 22px 24px;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(52,211,153,0.30), transparent 60%),
+    radial-gradient(120% 160% at 0% 120%, rgba(139,92,246,0.22), transparent 55%),
+    #0a0e18;
+  border-bottom: 1px solid rgba(148,163,184,0.18);
+}
+.bs-banner-row { display: flex; align-items: center; gap: 11px; }
+.bs-mark {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 15px; letter-spacing: -0.02em; color: #04130d;
+  background: linear-gradient(135deg, #34d399, #10b981 55%, #a7f3d0);
+  box-shadow: 0 4px 16px -4px rgba(16,185,129,0.6);
+}
+.bs-wordmark { font-weight: 700; font-size: 16px; color: #f3f6fb; letter-spacing: -0.01em; }
+.bs-tag { margin-left: auto; font-size: 12px; color: #93a1b8; }
+
+.brainscan-modal h2.bs-title {
+  margin: 2px 0 6px; font-size: 21px; letter-spacing: -0.02em; color: var(--text-normal);
+}
+.bs-sub { margin: 0 0 16px; color: var(--text-muted); font-size: 13.5px; line-height: 1.55; }
+
+.bs-stats { display: flex; gap: 10px; margin: 0 0 16px; }
+.bs-stat {
+  flex: 1; padding: 12px 14px; border-radius: 11px;
+  background: var(--background-secondary); border: 1px solid var(--background-modifier-border);
+}
+.bs-stat-num { font-size: 20px; font-weight: 800; color: var(--bs-accent-2); letter-spacing: -0.01em; }
+.bs-stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-top: 2px; }
+
+.bs-note {
+  display: flex; gap: 9px; align-items: flex-start;
+  padding: 11px 13px; border-radius: 10px; font-size: 12.5px; line-height: 1.5;
+  color: var(--text-muted);
+  background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.22);
+}
+.bs-note svg { flex: 0 0 auto; margin-top: 1px; color: #fbbf24; }
+
+.brainscan-modal .modal-button-container { margin-top: 20px; }
+.brainscan-modal .bs-cta {
+  background: linear-gradient(135deg, #34d399, #10b981 60%, #059669) !important;
+  color: #04130d !important; font-weight: 700;
+  box-shadow: 0 6px 20px -6px rgba(16,185,129,0.55);
+}
+.brainscan-modal .bs-cta:hover { filter: brightness(1.06); }
+
+.brainscan-settings .bs-banner { margin: 0 0 18px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.18); }
+.brainscan-settings .bs-sub { margin-bottom: 4px; }
+`;
+    this.styleEl = document.createElement("style");
+    this.styleEl.id = "brainscan-styles";
+    this.styleEl.textContent = css;
+    document.head.appendChild(this.styleEl);
   }
 
   async loadSettings() {
@@ -164,14 +252,30 @@ class ConfirmModal extends Modal {
 
   onOpen() {
     const { contentEl } = this;
-    contentEl.createEl("h2", { text: "Scan your brain?" });
-    const kb = Math.round(this.totalBytes / 1024);
+    contentEl.addClass("brainscan-ui", "brainscan-modal");
+
+    renderBrandBanner(contentEl, "Brain Card");
+
+    contentEl.createEl("h2", { text: "Scan your brain?", cls: "bs-title" });
     contentEl.createEl("p", {
-      text: `${this.fileCount} notes (${kb} KB) will be sent to BrainScan to generate your brain card. You'll view the result on the BrainScan site.`,
+      cls: "bs-sub",
+      text: "BrainScan reads your notes into a Brain Card — an honest read of how you think, what drives you, and how you connect. Here's exactly what's about to leave your vault:",
     });
-    contentEl.createEl("p", {
-      cls: "mod-warning",
-      text: "Exclude private folders in plugin settings if you don't want them included.",
+
+    const kb = Math.round(this.totalBytes / 1024);
+    const stats = contentEl.createDiv({ cls: "bs-stats" });
+    const notes = stats.createDiv({ cls: "bs-stat" });
+    notes.createDiv({ cls: "bs-stat-num", text: String(this.fileCount) });
+    notes.createDiv({ cls: "bs-stat-label", text: this.fileCount === 1 ? "note" : "notes" });
+    const size = stats.createDiv({ cls: "bs-stat" });
+    size.createDiv({ cls: "bs-stat-num", text: kb >= 1024 ? `${(kb / 1024).toFixed(1)} MB` : `${kb} KB` });
+    size.createDiv({ cls: "bs-stat-label", text: "uploaded" });
+
+    const note = contentEl.createDiv({ cls: "bs-note" });
+    const icon = note.createSpan();
+    setIcon(icon, "shield-alert");
+    note.createSpan({
+      text: "Exclude private folders (Journal, etc.) in plugin settings if you don't want them included.",
     });
 
     const row = contentEl.createDiv({ cls: "modal-button-container" });
@@ -180,7 +284,7 @@ class ConfirmModal extends Modal {
       this.resolve(false);
       this.close();
     };
-    const go = row.createEl("button", { text: "Scan", cls: "mod-cta" });
+    const go = row.createEl("button", { text: "Scan my brain", cls: "mod-cta bs-cta" });
     go.onclick = () => {
       this.resolve(true);
       this.close();
@@ -200,9 +304,12 @@ class BrainScanSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "BrainScan" });
+    containerEl.addClass("brainscan-ui", "brainscan-settings");
+
+    renderBrandBanner(containerEl, "Settings");
 
     containerEl.createEl("p", {
+      cls: "bs-sub",
       text: "Connect your account: open BrainScan → Settings → Connect Obsidian, copy the token, and paste it below.",
     });
 

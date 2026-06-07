@@ -95,6 +95,50 @@ a, button, [role="button"], input, select, textarea, label, summary {
   mask-image: radial-gradient(ellipse 75% 60% at 50% 0%, #000 35%, transparent 100%);
 }
 
+/* Liquid-chrome hero layer — generated emerald/chrome render blended over the
+   node grid. The asset's near-black ground (#060810) matches --background, so
+   `screen` drops the dark and only the chrome + emerald glow remains. */
+.hero-liquid {
+  background-image: url("/brand/hero-liquid-chrome.webp");
+  background-image: image-set(
+    url("/brand/hero-liquid-chrome-1280.webp") 1x,
+    url("/brand/hero-liquid-chrome.webp") 2x
+  );
+  background-repeat: no-repeat;
+  background-position: right top;
+  background-size: 60% auto;
+  opacity: 0.82;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left, #000 38%, transparent 88%);
+  mask-image: linear-gradient(to left, #000 38%, transparent 88%);
+}
+@media (max-width: 768px) {
+  .hero-liquid {
+    background-size: 135% auto;
+    background-position: right -18% top -6%;
+    opacity: 0.5;
+  }
+}
+
+/* Subtle liquid-chrome texture for Brain Card surfaces — same asset, dialed
+   right down so it reads as material, not decoration. */
+.card-liquid {
+  background-image: url("/brand/hero-liquid-chrome-1280.webp");
+  background-image: image-set(
+    url("/brand/hero-liquid-chrome-1280.webp") 1x,
+    url("/brand/hero-liquid-chrome.webp") 2x
+  );
+  background-repeat: no-repeat;
+  background-position: right -8% center;
+  background-size: 56% auto;
+  opacity: 0.38;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left, #000 20%, transparent 80%);
+  mask-image: linear-gradient(to left, #000 20%, transparent 80%);
+}
+
 /* Card hover-lift — gives surfaces depth + responsiveness on hover */
 .card-hover {
   transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
