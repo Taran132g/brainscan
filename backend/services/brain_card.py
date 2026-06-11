@@ -1,19 +1,14 @@
+import json
 import os
+import re
 import time
-import anthropic
 from typing import List
 from collections import defaultdict
 
 from services.scan_domains import get_domain
+from services import llm
 
-_client = None
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        _client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    return _client
+BRAIN_CARD_MODEL = os.getenv("PAIS_BRAINCARD_MODEL", "claude-opus-4-8")
 
 
 # ---------- Domain-neutral chunk selection (works for any scan domain) ----------
@@ -198,25 +193,26 @@ def generate_brain_card(
     )
     external_block = _build_external_block(external_signals)
 
-    message = _get_client().messages.create(
-        model="claude-opus-4-8",
-        max_tokens=4800,
-        system=dom.system_prompt,
-        tools=[dom.tool_schema],
-        tool_choice={"type": "tool", "name": dom.tool_name},
-        messages=[
-            {"role": "user", "content": dom.user_prompt_template.format(
-                notes=notes,
-                external_signals_block=external_block,
-            )}
-        ],
+    # Structured output without tool-use: the CLI bridge returns text, so we
+    # instruct the model to emit JSON matching the same schema and parse it.
+    user_prompt = dom.user_prompt_template.format(
+        notes=notes, external_signals_block=external_block,
     )
-
-    tool_use_block = next((b for b in message.content if b.type == "tool_use"), None)
-    if tool_use_block is None:
-        raise RuntimeError("Brain card generation failed — no tool_use block in response.")
-
-    payload = tool_use_block.input
+    schema = dom.tool_schema.get("input_schema", dom.tool_schema)
+    prompt = (
+        dom.system_prompt + "\n\n" + user_prompt + "\n\n"
+        "Return ONLY a single valid JSON object matching this schema. "
+        "No prose, no markdown, no code fences:\n" + json.dumps(schema)
+    )
+    text = llm.complete(prompt, model=BRAIN_CARD_MODEL, timeout=300)
+    raw = re.sub(r"^```(?:json)?|```$", "", text.strip(), flags=re.M).strip()
+    m = re.search(r"\{.*\}", raw, re.S)
+    if not m:
+        raise RuntimeError("Brain card generation failed — no JSON in response.")
+    try:
+        payload = json.loads(m.group(0))
+    except json.JSONDecodeError:
+        raise RuntimeError("Brain card generation failed — invalid JSON in response.")
 
     sections = {
         dom.section_titles[key]: payload[key]

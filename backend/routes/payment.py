@@ -14,7 +14,7 @@ from services.db import get_client
 
 router = APIRouter()
 
-ProductKey = Literal["brain_card", "full_membership", "extra_upload", "upgrade"]
+ProductKey = Literal["brain_card", "full_membership", "extra_upload", "upgrade", "pro"]
 
 
 class CheckoutRequest(BaseModel):

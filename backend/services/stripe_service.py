@@ -34,6 +34,7 @@ def _price_id_for(product: ProductKey) -> str:
         "full_membership": "STRIPE_PRICE_FULL_MEMBERSHIP",
         "extra_upload": "STRIPE_PRICE_EXTRA_UPLOAD",
         "upgrade": "STRIPE_PRICE_UPGRADE",
+        "pro": "STRIPE_PRICE_PRO",
     }[product]
     price_id = os.getenv(env_var)
     if not price_id:
@@ -81,14 +82,14 @@ def create_checkout_session(
     price_id = _price_id_for(product)
 
     # Subscriptions vs one-time payments need different modes
-    mode = "subscription" if product == "full_membership" else "payment"
+    mode = "subscription" if product in ("full_membership", "pro") else "payment"
 
     session = stripe.checkout.Session.create(
         customer=customer_id,
         line_items=[{"price": price_id, "quantity": 1}],
         mode=mode,
-        success_url=f"{_frontend_url()}/dashboard?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{_frontend_url()}/pricing?checkout=cancelled",
+        success_url=f"{_frontend_url()}/app?upgraded=1",
+        cancel_url=f"{_frontend_url()}/app?checkout=cancelled",
         metadata={
             "supabase_user_id": user_id,
             "product": product,

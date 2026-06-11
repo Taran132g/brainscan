@@ -14,6 +14,7 @@ If the user is missing a credit/quota, we raise an HTTPException with
 to the right Stripe checkout flow.
 """
 
+import os
 from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException, status
 from services.db import get_client
@@ -21,6 +22,12 @@ from services.db import get_client
 
 CYCLE_DAYS = 30
 FULL_TIER_FREE_UPLOADS_PER_CYCLE = 2
+
+# Owner / comped accounts that bypass the paywall entirely (founder, testers,
+# done-for-you PAIS customers). Comma-separated Supabase user ids in env.
+BYPASS_USER_IDS = {
+    uid.strip() for uid in os.getenv("PAYWALL_BYPASS_USER_IDS", "").split(",") if uid.strip()
+}
 
 
 def _profile(user_id: str) -> dict:
@@ -86,6 +93,10 @@ def check_upload_allowed(user_id: str) -> dict:
     Raises HTTPException(402, {code: "payment_required", required_product: ...})
     if not allowed.
     """
+    # Owner / comped accounts skip the paywall entirely.
+    if user_id in BYPASS_USER_IDS:
+        return {"allowed": True, "method": "owner"}
+
     profile = _profile(user_id)
     tier = profile.get("subscription_tier", "free")
     status_str = profile.get("subscription_status", "inactive")
