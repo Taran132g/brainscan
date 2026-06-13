@@ -121,10 +121,19 @@ def _verify_token(token: str) -> dict:
 
 def get_current_user_id(authorization: Optional[str] = Header(default=None)) -> str:
     """
-    FastAPI dependency: verifies the Supabase JWT and returns the user id.
-    Raises 401 on any failure.
+    FastAPI dependency: returns the authenticated user id, accepting either a
+    Supabase JWT (web) or a PAIS desktop-runtime access token. Raises 401 on
+    any failure.
     """
     token = _bearer_token(authorization)
+    # PAIS runtime access tokens (our own HS256, aud=pais-runtime) are accepted
+    # alongside Supabase JWTs. Additive + isolated: a Supabase token can't pass
+    # the runtime check (different key + audience) and vice-versa, so the web
+    # path is unchanged. Cheap local HMAC check first; fall through on miss.
+    from services import runtime_auth
+    runtime_uid = runtime_auth.verify_access(token)
+    if runtime_uid:
+        return runtime_uid
     payload = _verify_token(token)
     user_id = payload.get("sub")
     if not user_id:

@@ -13,15 +13,15 @@ from routes.scan import router as scan_router
 from routes.plugin import router as plugin_router
 from routes.chat import router as chat_router
 from routes.agents import router as agents_router
+from routes.runtime import router as runtime_router
 
-app = FastAPI(title="BrainScan API", version="0.1.0")
+app = FastAPI(title="PAIS API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://findingfounders.app",
-        "https://www.findingfounders.app",
+        "https://pais-site.vercel.app",
     ],
     # Vercel deploys (preview + production *.vercel.app) — covers the live URL
     # before the custom domain is attached.
@@ -41,6 +41,7 @@ app.include_router(scan_router, prefix="/api", tags=["scan"])
 app.include_router(plugin_router, prefix="/api", tags=["plugin"])
 app.include_router(chat_router, prefix="/api", tags=["chat"])
 app.include_router(agents_router, prefix="/api", tags=["agents"])
+app.include_router(runtime_router, prefix="/api", tags=["runtime"])
 
 
 @app.get("/health")
