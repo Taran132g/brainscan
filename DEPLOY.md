@@ -47,7 +47,7 @@ On Oracle:
 ```bash
 # 1. Clone
 cd ~ && git clone https://github.com/Taran132g/brainscan.git findingfounders
-cd ~/findingfounders/backend
+cd ~/pais-api/backend
 
 # 2. Python venv + deps
 python3.10 -m venv venv
@@ -70,7 +70,7 @@ nano .env && chmod 600 .env
 # 4. CORS already updated in main.py (allow_origins includes https://findingfounders.app)
 
 # 5. systemd unit
-sudo tee /etc/systemd/system/findingfounders-api.service > /dev/null << 'EOF'
+sudo tee /etc/systemd/system/pais-api.service > /dev/null << 'EOF'
 [Unit]
 Description=FindingFounders FastAPI backend
 After=network.target
@@ -78,9 +78,9 @@ After=network.target
 [Service]
 Type=simple
 User=ubuntu
-WorkingDirectory=/home/ubuntu/findingfounders/backend
-EnvironmentFile=/home/ubuntu/findingfounders/backend/.env
-ExecStart=/home/ubuntu/findingfounders/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8001
+WorkingDirectory=/home/ubuntu/pais-api/backend
+EnvironmentFile=/home/ubuntu/pais-api/backend/.env
+ExecStart=/home/ubuntu/pais-api/backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 8001
 Restart=on-failure
 RestartSec=5
 
@@ -89,8 +89,8 @@ WantedBy=multi-user.target
 EOF
 
 sudo systemctl daemon-reload
-sudo systemctl enable --now findingfounders-api
-sudo systemctl status findingfounders-api      # verify it's running
+sudo systemctl enable --now pais-api
+sudo systemctl status pais-api      # verify it's running
 curl -s http://127.0.0.1:8001/health           # → {"status":"ok"}
 
 # 6. nginx reverse proxy
@@ -163,7 +163,7 @@ These can't be done in code. Each is a hard blocker for the feature it gates.
 **Stripe** (dashboard → Developers → Webhooks → Add endpoint):
 - Endpoint URL → `https://api.findingfounders.app/api/payment/webhook`
 - Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
-- Copy the **Signing secret** → set as `STRIPE_WEBHOOK_SECRET` in Oracle `.env`, then `sudo systemctl restart findingfounders-api`
+- Copy the **Signing secret** → set as `STRIPE_WEBHOOK_SECRET` in Oracle `.env`, then `sudo systemctl restart pais-api`
 - Without this: payments succeed at Stripe but the tier/credit never updates in your DB.
 - Also switch Stripe keys from test → live mode when ready (`STRIPE_SECRET_KEY` + `STRIPE_PRICE_BRAIN_CARD` live IDs).
 

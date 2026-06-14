@@ -78,12 +78,7 @@ def allowed_agents(user_id: str) -> list:
     st = status(user_id)
     if st["plan"] == "pro":
         return ["*"]
-    if st["trial_expired"]:
-        return []
-    agents = list(FREE_ALWAYS)
-    if st["chosen_agent"]:
-        agents.append(st["chosen_agent"])
-    return agents
+    return ["assistant"]          # non-pro: chat demo only, no workflow runs
 
 
 def choose(user_id: str, agent: str) -> dict:
@@ -102,6 +97,10 @@ def enforce(user_id: str, agent: str, claim: bool = True) -> None:
     plan = get_plan(user_id)
     if plan == "pro":
         return
+    # Workflows are Pro-only for everyone but the owner — no free-trial runs.
+    if agent != "assistant":
+        raise HTTPException(402, {"code": "pro_required", "product": "pro",
+                                  "message": "Running workflows requires PAIS Pro — book a call to get your own agent team."})
     acct = _load(user_id)
     now = int(time.time() * 1000)
     if not acct.get("trial_start"):

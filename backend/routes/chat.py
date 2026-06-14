@@ -129,6 +129,25 @@ def chat(
     message = (body.get("message") or "").strip()
     if not message:
         raise HTTPException(400, "message is required")
+
+    # The Control Room AI runs on the OWNER's Claude subscription via the Mac
+    # bridge — owner-only. Other accounts chat through their own runtime
+    # (their own subscription); until that's linked, explain instead of spend.
+    if user_id not in BRIDGE_BRAIN_USERS:
+        from routes.agents import runtime_connected
+        if runtime_connected(user_id):
+            reply = ("Your desktop runtime is connected — your agents run on your own "
+                     "machine and your own Claude subscription, and their reports land "
+                     "in each agent's Pipeline here. Web chat for connected teams is "
+                     "part of onboarding — book a call and we'll set it up: "
+                     "https://cal.com/taranveer/workflows")
+        else:
+            reply = ("This demo workspace doesn't run AI for visitor accounts — PAIS "
+                     "executes on YOUR machine with YOUR Claude subscription, so your "
+                     "data and costs stay yours. Connect your desktop runtime, or book "
+                     "a call and we'll build your workflows: "
+                     "https://cal.com/taranveer/workflows")
+        return {"reply": reply, "grounded": False, "sources": []}
     if len(message) > 4000:
         raise HTTPException(400, "message too long")
 

@@ -268,6 +268,8 @@ async def post_message(body: dict = Body(...), user_id: str = Depends(get_curren
     text = str(body.get("text") or "").strip()
     if agent not in AGENTS or not text:
         raise HTTPException(400, "agent + text required")
+    if user_id not in BRIDGE_BRAIN_USERS:
+        _stamp_runtime(user_id)              # runtime heartbeat
     p = _msg_path(user_id)
     msgs = json.loads(p.read_text()) if p.exists() else []
     msgs.append({"agent": agent, "text": text[:MAX_MSG_CHARS], "ts": int(time.time() * 1000)})
@@ -282,6 +284,7 @@ async def get_secrets(user_id: str = Depends(get_current_user_id)):
     runtime to use. Scoped to the authenticated user — you can only ever pull
     your own secrets, over TLS. Never logged.
     """
+    _stamp_runtime(user_id)                  # runtime heartbeat
     raw = _load_raw(user_id)
     conns = {}
     for k, v in raw.get("connections", {}).items():
@@ -304,6 +307,8 @@ def _prefill_agent(user_id: str, agent: str) -> dict:
     """Mine the brain for an agent: DESCRIPTIVE field values + a rich persona,
     so the agent has the most context to do its best work."""
     spec = AGENTS[agent]
+    if user_id not in BRIDGE_BRAIN_USERS:
+        return {"fields": {}, "persona": "", "grounded": False}
     context = _brain_chunks(user_id, spec["prefill_query"])
     if not context:
         return {"fields": {}, "persona": "", "grounded": False}
@@ -373,6 +378,23 @@ def prefill_all(user_id: str = Depends(get_current_user_id)):
     return {"prefilled": done}
 
 
+RUNTIME_FRESH_MS = 26 * 3600 * 1000     # daily routine cadence + slack
+
+
+def _stamp_runtime(user_id: str) -> None:
+    raw = _load_raw(user_id)
+    raw["runtime_seen"] = int(time.time() * 1000)
+    _save_raw(user_id, raw)
+
+
+def runtime_connected(user_id: str) -> bool:
+    """Has this user's desktop runtime synced recently? (Owner: always true.)"""
+    if user_id in BRIDGE_BRAIN_USERS:
+        return True
+    seen = _load_raw(user_id).get("runtime_seen", 0)
+    return (int(time.time() * 1000) - seen) < RUNTIME_FRESH_MS
+
+
 def _append_message(user_id: str, agent: str, text: str) -> None:
     p = _msg_path(user_id)
     msgs = json.loads(p.read_text()) if p.exists() else []
@@ -384,6 +406,31 @@ def _append_message(user_id: str, agent: str, text: str) -> None:
 # In-memory is fine — single uvicorn process; a restart just clears stale status.
 RUNS: dict = {}
 _RUNS_LOCK = threading.Lock()
+RUNS_FILE = CONFIG_DIR.parent / "agent_runs.json"
+
+
+def _persist() -> None:
+    try:
+        RUNS_FILE.write_text(json.dumps(RUNS))
+    except Exception:
+        pass
+
+
+# Reload run state across restarts; anything mid-flight when the server died
+# is marked interrupted (the worker thread died with the process).
+try:
+    RUNS.update(json.loads(RUNS_FILE.read_text()))
+    for _u, _d in RUNS.items():
+        for _k, _v in list(_d.items()):
+            if isinstance(_v, dict) and _v.get("state") == "running":
+                _v.update({"state": "done", "finished": int(time.time() * 1000)})
+                if _k == "__routine":
+                    _v["stopped"] = True
+                else:
+                    _v["result"] = {"ran": False, "agent": _k,
+                                    "message": "Interrupted by a server restart — run it again."}
+except Exception:
+    pass
 
 
 def _execute_run(user_id: str, agent: str) -> dict:
@@ -395,7 +442,8 @@ def _execute_run(user_id: str, agent: str) -> dict:
     raw = _load_raw(user_id)
     spec = AGENTS[agent]
     have = raw.get("connections", {})
-    missing = [n for n in spec["needs"] if not have.get(n)]
+    # Owner scripts read keys from the Mac's own .env — web-stored keys not needed.
+    missing = [] if user_id in BRIDGE_BRAIN_USERS else [n for n in spec["needs"] if not have.get(n)]
     if missing:
         return {"ran": False, "agent": agent, "missing": missing,
                 "message": f"Add the required info first: {', '.join(missing)}."}
@@ -436,27 +484,12 @@ def _execute_run(user_id: str, agent: str) -> dict:
         _append_message(user_id, agent, text)
         return {"ran": True, "agent": agent, "text": text}
 
-    # Non-owner reviewer: runs server-side for everyone — it only needs the
-    # user's own feed (in fields["ROUTINE"]) + the shared LLM. Deliberately NO
-    # brain search here: the bridge brain belongs to the owner.
-    if agent == "reviewer":
-        fld = "; ".join(f"{k}: {v}" for k, v in fields.items() if v)
-        prompt = (
-            f"{persona}\n\nYour settings: {fld or '(none)'}\n\n"
-            f"Do your job now and write the update to post to the user's feed. Be AS "
-            f"DESCRIPTIVE AS POSSIBLE and strictly factual to the ROUTINE data — grade "
-            f"each agent's latest output by name, quote the actual outputs, and suggest "
-            f"concrete routine fixes. Plain text, short section headers and bullets."
-        )
-        try:
-            text = llm.complete(prompt, timeout=300)
-        except llm.BridgeOffline:
-            return {"ran": False, "agent": agent, "message": "PAIS AI is waking up — try again in a bit."}
-        except Exception as e:
-            return {"ran": False, "agent": agent, "message": f"Couldn't run: {e}"}
-        _append_message(user_id, agent, text)
-        return {"ran": True, "agent": agent, "text": text}
-
+    # Non-owner: nothing executes server-side — their desktop runtime runs every
+    # agent on THEIR OWN Claude subscription. The owner's bridge is owner-only.
+    if not runtime_connected(user_id):
+        return {"ran": False, "agent": agent,
+                "message": "Connect your desktop runtime first — your agents run on "
+                           "your own machine and your own Claude subscription."}
     return {"ran": False, "agent": agent,
             "message": f"{spec['title']} is configured. Connect your desktop and it runs on schedule."}
 
@@ -480,6 +513,7 @@ def run(agent: str, bg: int = 0, user_id: str = Depends(get_current_user_id)):
         if (cur.get(agent) or {}).get("state") == "running":
             return {"queued": True, "agent": agent, "already": True}
         cur[agent] = {"state": "running", "started": now, "finished": None, "result": None}
+        _persist()
 
     def _job():
         try:
@@ -490,9 +524,45 @@ def run(agent: str, bg: int = 0, user_id: str = Depends(get_current_user_id)):
             RUNS.setdefault(user_id, {})[agent] = {
                 "state": "done", "started": now,
                 "finished": int(time.time() * 1000), "result": res}
+        _persist()
 
     threading.Thread(target=_job, daemon=True).start()
     return {"queued": True, "agent": agent}
+
+
+@router.post("/agents/routine-ctl")
+def routine_ctl(body: dict = Body(...), user_id: str = Depends(get_current_user_id)):
+    """Control a running routine: pause / resume / stop / skip (next boundary)."""
+    action = str(body.get("action") or "")
+    if action not in ("pause", "resume", "stop", "skip"):
+        raise HTTPException(400, "action must be pause|resume|stop|skip")
+    with _RUNS_LOCK:
+        rt = RUNS.get(user_id, {}).get("__routine")
+        if not rt or rt.get("state") != "running":
+            return {"ok": False, "message": "No routine is running."}
+        if action == "resume":
+            rt["ctl"] = "run"
+        elif action == "skip":
+            rt["skip"] = True
+        else:
+            rt["ctl"] = action
+    _persist()
+    return {"ok": True, "action": action}
+
+
+@router.post("/agents/run-ctl")
+def run_ctl(body: dict = Body(...), user_id: str = Depends(get_current_user_id)):
+    """Stop ONE running agent (owner: kills the script on the Mac via the bridge)."""
+    agent = str(body.get("agent") or "")
+    if user_id not in BRIDGE_BRAIN_USERS or agent not in AGENTS:
+        return {"ok": False}
+    import requests as rq
+    try:
+        r = rq.post(f"{llm.BRIDGE_URL}/kill", json={"agent": agent},
+                    headers={"Authorization": "Bearer " + llm.BRIDGE_TOKEN}, timeout=10)
+        return r.json() if r.ok else {"ok": False}
+    except Exception:
+        return {"ok": False}
 
 
 @router.get("/agents/run-status")
@@ -531,14 +601,41 @@ def routine_run(user_id: str = Depends(get_current_user_id)):
                             "started": now, "finished": None, "ok": 0}
         for a in seq:
             cur[a] = {"state": "pending", "started": None, "finished": None, "result": None}
+        _persist()
 
     def _job():
         ok = 0
         for a in seq:
+            # honor pause/stop/skip at agent boundaries (in-flight agents finish)
+            while True:
+                with _RUNS_LOCK:
+                    rt = RUNS[user_id]["__routine"]
+                    ctl = rt.get("ctl", "run"); skip = rt.pop("skip", False)
+                if ctl == "stop":
+                    with _RUNS_LOCK:
+                        RUNS[user_id]["__routine"].update({"state": "done", "current": None,
+                            "finished": int(time.time() * 1000), "ok": ok, "stopped": True})
+                        _persist()
+                    return
+                if skip:
+                    with _RUNS_LOCK:
+                        RUNS[user_id][a] = {"state": "done", "started": int(time.time()*1000),
+                            "finished": int(time.time()*1000),
+                            "result": {"ran": False, "agent": a, "message": "Skipped by you."}}
+                        _persist()
+                    break
+                if ctl != "pause":
+                    break
+                time.sleep(2)
+            else:
+                continue
+            if skip:
+                continue
             t0 = int(time.time() * 1000)
             with _RUNS_LOCK:
                 RUNS[user_id]["__routine"]["current"] = a
                 RUNS[user_id][a] = {"state": "running", "started": t0, "finished": None, "result": None}
+                _persist()
             try:
                 res = _execute_run(user_id, a)
             except Exception as e:
@@ -549,12 +646,28 @@ def routine_run(user_id: str = Depends(get_current_user_id)):
                 RUNS[user_id][a] = {"state": "done", "started": t0,
                                     "finished": int(time.time() * 1000), "result": res}
                 RUNS[user_id]["__routine"]["ok"] = ok
+                _persist()
         with _RUNS_LOCK:
             RUNS[user_id]["__routine"].update(
                 {"state": "done", "current": None, "finished": int(time.time() * 1000), "ok": ok})
+            _persist()
 
     threading.Thread(target=_job, daemon=True).start()
     return {"started": True, "seq": seq}
+
+
+@router.get("/agents/leads")
+def leads(agent: str = "outreach", user_id: str = Depends(get_current_user_id)):
+    """Per-agent pipeline data (owner: from the Mac bridge)."""
+    if user_id not in BRIDGE_BRAIN_USERS:
+        return {"items": []}
+    import requests as rq
+    try:
+        r = rq.post(f"{llm.BRIDGE_URL}/leads", json={"agent": agent},
+                    headers={"Authorization": "Bearer " + llm.BRIDGE_TOKEN}, timeout=10)
+        return {"items": r.json().get("items", [])} if r.ok else {"items": []}
+    except Exception:
+        return {"items": []}
 
 
 @router.get("/agents/account")
